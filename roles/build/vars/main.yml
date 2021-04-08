@@ -1,0 +1,82 @@
+ganeti_build_deps_general:
+  - "autoconf"
+  - "make"
+  - "fakeroot"
+  - "python3"
+  - "ghc"
+  - "cabal-install"
+  - "man"
+  - "socat"
+  - "qemu-utils"
+  - "pandoc"
+  - "graphviz"
+  # only for tests
+  - "shelltestrunner"
+  - "pep8"
+
+ganeti_build_deps_python3:
+  - "python3-openssl"
+  - "python3-simplejson"
+  - "python3-pyparsing"
+  - "python3-pyinotify"
+  - "python3-pycurl"
+  - "python3-bitarray"
+  - "python3-yaml"
+  - "python3-docutils"
+  - "python3-sphinx"
+  # only for tests
+  - "python3-coverage"
+  - "python3-mock"
+  - "pylint3"
+  # only for the release script (autotools/check-imports)
+  - "python3-paramiko"
+
+ganeti_build_deps_python2:
+  - "python-openssl"
+  - "python-simplejson"
+  - "python-pyparsing"
+  - "python-pyinotify"
+  - "python-pycurl"
+  - "python-bitarray"
+  - "python-yaml"
+  - "python-docutils"
+  - "python-sphinx"
+  - "python-ipaddr"
+  # only for tests
+  - "python-coverage"
+  - "python-mock"
+  - "pylint"
+  # only for the release script (autotools/check-imports)
+  - "python-paramiko"
+
+ganeti_build_deps_haskell_general:
+  - "libghc-curl-dev"
+  - "libghc-json-dev"
+  - "libghc-network-dev"
+  - "libghc-base64-bytestring-dev"
+  - "libghc-utf8-string-dev"
+  - "libghc-zlib-dev"
+  - "libghc-hslogger-dev"
+  - "libghc-attoparsec-dev"
+  - "libghc-vector-dev"
+  - "libghc-hinotify-dev"
+  - "libghc-lifted-base-dev"
+  - "libghc-lens-dev"
+  - "libghc-regex-pcre-dev"
+  - "libghc-snap-server-dev"
+  - "libghc-psqueue-dev"
+  - "libghc-old-time-dev"
+  - "libghc-temporary-dev"
+  # only for tests, but cabel check will fail
+  - "hscolour"
+  - "hlint"
+  - "libghc-quickcheck2-dev"
+  - "libghc-test-framework-dev"
+  - "libghc-test-framework-hunit-dev"
+  - "libghc-test-framework-quickcheck2-dev"
+
+ganeti_build_deps_haskell_ganeti3:
+  - "libghc-cryptonite-dev"
+
+ganeti_build_deps_haskell_ganeti2:
+  - "libghc-crypto-dev"

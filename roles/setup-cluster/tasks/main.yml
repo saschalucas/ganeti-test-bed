@@ -1,0 +1,46 @@
+---
+- name: "creating NFS sharedfile subfolder"
+  file:
+    path: "/srv/ganeti/shared-file-storage/{{ build_id }}"
+    state: "directory"
+    owner: "root"
+    group: "root"
+    mode: "0700"
+
+- name: "initialiting Cluster"
+  command:
+    cmd: "gnt-cluster init --enabled-hypervisors kvm,fake --hypervisor-parameters 'kvm:kernel_path=,user_shutdown=true' --user-shutdown yes --enabled-disk-templates plain,drbd,file,sharedfile --shared-file-storage-dir /srv/ganeti/shared-file-storage/{{ build_id }} --disk-parameters drbd:resync-rate=100000,meta-barriers=True,disk-barriers=bf,c-max-rate=100000,c-min-rate=100000,dynamic-resync=False,c-plan-ahead=0,disk-custom='--c-plan-ahead 0',net-custom='--max-buffers 32000 --max-epoch-size 8000 --verify-alg crc32c' cluster.{{ build_id }}.{{ fqdn_suffix }}"
+    creates: "/var/lib/ganeti/config.data"
+
+- name: "adding nodes"
+  shell:
+    cmd: "gnt-node add --no-ssh-key-check {{ item }}.{{ build_id }}.{{ fqdn_suffix }} && touch /var/tmp/node-add-{{ item }}.success"
+    creates: "/var/tmp/node-add-{{ item }}.success"
+  when: item != "master"
+  with_items:
+    - "{{ groups['cluster_nodes'] }}"
+
+- name: "creating network"
+  shell:
+    cmd: "gnt-network add --network={{ network_cidr }} --gateway={{ network_gw }} {{ instance_network }} && touch /var/tmp/network-add.success"
+    creates: "/var/tmp/network-add.success"
+
+- name: "connection the network"
+  shell:
+    cmd: "gnt-network connect --nic-parameters mode=bridged,link=gnt-br0 {{ instance_network }} && touch /var/tmp/network-connect.success"
+    creates: "/var/tmp/network-connect.success"
+
+# 2do: reserve all IPs, expect the one we have reserve for the virtual nodes in the real cluster
+- name: "masking unusable IPs"
+  shell:
+    cmd: "gnt-network modify --add-reserved-ips={{ reserved_ips | join(',') }} {{ instance_network }} && touch /var/tmp/network-reserved-ips.success"
+    creates: "/var/tmp/network-reserved-ips.success"
+  vars:
+    network_addr: "{{ network_cidr | ipaddr('network') }}"
+    braodcast_addr: "{{ network_cidr | ipaddr('broadcast') }}"
+    node_ips: "{{ [ hostvars['master'].gnt_instance_info.json['nic.ips'][0], hostvars['node02'].gnt_instance_info.json['nic.ips'][0], hostvars['node03'].gnt_instance_info.json['nic.ips'][0] ] }}"
+    already_reserved_ips: "{{ [network_addr] + [braodcast_addr] + [network_gw] + [cluster_ip] + node_ips }}"
+    usable_ips: "{{ [ hostvars['master'].gnt_instance_info.json['nic.ips'][2], hostvars['node02'].gnt_instance_info.json['nic.ips'][1], hostvars['node02'].gnt_instance_info.json['nic.ips'][2], hostvars['node03'].gnt_instance_info.json['nic.ips'][1], hostvars['node03'].gnt_instance_info.json['nic.ips'][2] ] }}"
+    non_masking_ips: "{{ already_reserved_ips + usable_ips }}"
+    network_size: "{{ network_cidr | ipaddr('size') }}"
+    reserved_ips: "{% set _mip = [] %}{% for n in range(network_size|int - 1) %}{% set _ip = network_cidr | ipaddr(n + 1) | ipaddr('address') %}{% if _ip not in non_masking_ips %}{{ _mip.append(_ip) }}{% endif %}{% endfor %}{{ _mip }}"

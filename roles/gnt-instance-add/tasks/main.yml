@@ -1,0 +1,101 @@
+---
+- name: "collecting network information"
+  uri:
+    url: "{{ rapi_url }}/networks/{{ instance_network }}"
+    method: "GET"
+    user: "{{ rapi_user }}"
+    password: "{{ rapi_pass }}"
+    headers:
+      Content-Type: "application/json"
+    validate_certs: "no"
+  register: gnt_network_info
+  run_once: true
+
+- name: "does the instance allready exist?"
+  uri:
+    url: "{{ rapi_url }}/instances"
+    method: "GET"
+    user: "{{ rapi_user }}"
+    password: "{{ rapi_pass }}"
+    headers:
+      Content-Type: "application/json"
+    validate_certs: "no"
+  register: gnt_instance_list
+
+- name: "instance does not exist ... creating"
+  block:
+    - name: "creating instance"
+      uri:
+        url: "{{ rapi_url }}/instances"
+        method: "POST"
+        user: "{{ rapi_user }}"
+        password: "{{ rapi_pass }}"
+        body_format: "json"
+        body:
+          mode: "create"
+          instance_name: "{{ instance }}"
+          os_type: "{{ build_os }}"
+          beparams:
+            # 8G is the minimum size, where hail will work
+            memory: "8G"
+            vcpus: "4"
+          hvparams:
+            cpu_type: "host"
+            disk_cache: "writeback"
+          disk_template: "{{ disk_template }}"
+          disks:
+            - size: "{{ 15 * 1024 }}"
+            - size: "{{ 30 * 1024 }}"
+          nics: "{{ nics }}"
+          tags:
+            - "ganeti_git_url:{{ _ganeti_git_url }}"
+            - "ganeti_git_branch:{{ _ganeti_git_branch }}"
+            - "{{ instance_tag | default(omit) }}"
+          __version__: 1
+          ip_check: false
+          name_check: false
+          wait_for_sync: false
+          pnode: "{% if pnode is defined %}{{ pnode }}{% else %}{{ omit }}{% endif %}"
+          iallocator: "{% if pnode is defined %}{{ omit }}{% else %}hail{% endif %}"
+          opportunistic_locking: "{% if pnode is defined %}{{ omit }}{% else %}{{ true }}{% endif %}"
+        validate_certs: "no"
+      register: gnt_instance_add
+      throttle: 1
+      vars:
+        # one nic
+        nic:
+          - ip: "pool"
+            network: "{{ instance_network }}"
+        # allocate 3 NICs per node to reserve enough IPs for the master IP and nested instances
+        nics: "{{ nic + nic + nic }}"
+
+    - name: "waiting for instance creation"
+      uri:
+        url: "{{ rapi_url }}/jobs/{{ gnt_instance_add.json }}"
+        method: "GET"
+        user: "{{ rapi_user }}"
+        password: "{{ rapi_pass }}"
+        headers:
+          Content-Type: "application/json"
+        validate_certs: "no"
+      register: jobstatus
+      until: jobstatus.json.status not in ['running','waiting','queued']
+      retries: 6
+      delay: 10
+
+    - name: "checking result of instance creation"
+      assert:
+        that: jobstatus.json.status == "success"
+        msg: "The job {{ gnt_instance_add.json }} ({{ jobstatus.json.summary }}) was not successfukk or takes to long (status={{ jobstatus.json.status }} log={{ jobstatus.json.opresult }})"
+  when: instance not in gnt_instance_list.json|map(attribute='id')|list
+
+- name: "looking up assigned IP for instance"
+  uri:
+    url: "{{ rapi_url }}/instances/{{ instance }}"
+    method: "GET"
+    user: "{{ rapi_user }}"
+    password: "{{ rapi_pass }}"
+    headers:
+      Content-Type: "application/json"
+    validate_certs: "no"
+  register: gnt_instance_info

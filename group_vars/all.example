@@ -1,0 +1,38 @@
+---
+### Ganeti RAPI connection data
+rapi_host: "your-cluster.domain.tld"
+rapi_user: "gnt-test-bed"
+rapi_pass: 'secret'
+
+### The OS interface that will create test instances.
+### Instances need to be reachable via SSH after creation.
+### example OS interface to use:
+###     https://github.com/saschalucas/instance-guestfish
+instance_osi: "guestfish"
+
+### The disk template to use. All instances try to use migration-unsafe
+### caching (`writeback`). Some disk templates silently override cache
+### settings in order to be safe for migration. Try to use non migrateable
+### templates like `plain` or `file`.
+disk_template: "file"
+
+### the FQDN suffix for the instances in your real cluster
+fqdn_suffix: "gnt.test"
+
+### Existing Ganeti network (gnt-network) that the virtual nodes will use.
+### IP allocation via ip=pool must be possible. A test cluster will consume 12
+### IPs (build, master, node02, node03, cluster + 7 reserved for potential
+### nested instances)
+instance_network: "vm-net"
+
+### Any extra tag for the instances in your real cluster
+instance_tag: "ganeti-test-bed"
+
+### NFS server and path that will host sharedfile instances
+### If you like to test with sharedfile disk template, provide a NFS Server
+#nfs_sharedfile: "192.168.1.9:/srv/ganeti/test-bed"
+
+### NFS server and path that will host the OSI to create instances inside the test cluster
+#nfs_share_osi="192.168.1.9:/srv/ganeti/os"
+#nfs_share_images="192.168.1.9:/srv/ganeti/images"
+

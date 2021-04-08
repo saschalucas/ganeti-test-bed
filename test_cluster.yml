@@ -1,0 +1,180 @@
+---
+
+# invocation:
+#   test-cluster creation:
+#     ansible-playbook -i inventory.ini test_cluster.yml -e target_os=debian-buster -e rapi_pass='secret' -t setup
+#
+#   test-cluster deletion:
+#     ansible-playbook -i inventory.ini test_cluster.yml -e target_os=debian-buster -e rapi_pass='secret' -t destroy
+#     where target_os is the Ganeti OS variant
+#
+# playbook parametets that control execution:
+# 
+#   -e pnode='nodeX' 
+#      Create all instances on nodeX instead across all nodes in the cluster (using hail).
+#      This is also needed/usefull for single node clusters.
+
+- name: "preparing environment"
+  hosts: "cluster"
+  become: false
+  gather_facts: false
+  connection: "local"
+  tags:
+    - "setup"
+    - "destroy"
+  tasks:
+    - name: "checking prerequirements"
+      assert:
+        that: lookup('vars', item.var, default='') != ''
+        quiet: "yes"
+        fail_msg: "usage: ansible-playbook ... -e {{ item.var }}={{ item.msg }}"
+      with_items:
+        - { var: "rapi_pass", msg: "'secret' # the RAPI password" }
+        - { var: "target_os", msg: "'debian-buster' # the variant of your OS interface {{ instance_osi }}" }
+      loop_control:
+        label: "{{ item.var }}"
+
+    - name: "adding build instance to ansible inverntory"
+      add_host:
+        name: "build"
+    
+    - name: "adding cluster nodes to ansible inverntory"
+      add_host:
+        name: "{{ item }}"
+        groups: "cluster_nodes"
+      with_items:
+        - "master"
+        - "node02"
+        - "node03"
+
+    - name: "creating directory saving outputs"
+      file:
+        path: "/tmp/{{ build_id }}"
+        state: "directory"
+
+    - name: "generating ssh key pair for seamless node add"
+      command:
+        cmd: "ssh-keygen -P '' -t ecdsa -f /tmp/{{ build_id }}/id_ecdsa"
+        creates: "/tmp/{{ build_id }}/id_ecdsa"
+
+- name: "deploying test cluster and build VMs"
+  hosts: "cluster_nodes:build"
+  become: false
+  connection: "local"
+  gather_facts: false
+  tags: "setup"
+  tasks:
+    - import_role:
+        name: "gnt-instance-add"
+      vars:
+        instance: "{{ inventory_hostname }}.{{ build_id }}.{{ fqdn_suffix }}"
+
+    - name: "updateing ansible inverntory"
+      set_fact:
+        ansible_ssh_host: "{{ gnt_instance_info.json['nic.ips'][0] }}"
+        ansible_ssh_user: "root"
+        ansible_ssh_extra_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+        ansible_python_interpreter: "/usr/bin/python3"
+        cluster_ip: "{{ hostvars['master'].gnt_instance_info.json['nic.ips'][1] }}"
+        network_cidr: "{{ gnt_network_info.json['network'] }}"
+        network_gw: "{{ gnt_network_info.json['gateway'] }}"
+
+    # it's unlikly that the user has -o UserKnownHostsFile=/dev/null set
+    - name: "proactivly removing all claimed IPs from local known_hosts"
+      command: "ssh-keygen -R {{ gnt_instance_info.json['nic.ips'][item] }}"
+      throttle: 1
+      loop: "{{ range(3) | list }}"
+
+    - name: "waiting for SSH-Port reachability"
+      wait_for:
+        host: "{{ ansible_ssh_host }}"
+        port: 22
+        state: "started"
+        timeout: 60
+
+- name: "preparing build VM and compiling Ganeti from source"
+  hosts: "build"
+  become: false
+  gather_facts: false
+  tags: "setup"
+  tasks:
+    - include_role:
+        name: "build"
+
+- name: "preparing Cluster VMs to be Ganti ready"
+  hosts: "cluster_nodes"
+  become: false
+  gather_facts: false
+  tags: "setup"
+  tasks:
+    - include_role:
+        name: "setup-cluster-vms"
+
+- name: "setting up a Ganeti Cluster"
+  hosts: "master"
+  become: false
+  gather_facts: false
+  tags: "setup"
+  tasks:
+    - include_role:
+        name: "setup-cluster"
+
+    - name:
+      pause:
+        prompt: |-
+          your test cluster is ready
+          build host IP={{ hostvars['build']['ansible_ssh_host'] }}
+          build path=/tmp/{{ build_id }}
+          Cluster IP={{ cluster_ip }} running Ganeti {{ _ganeti_git_url }}:{{ _ganeti_git_branch }} on {{ target_os }}
+        seconds: 1  
+
+# TODO: build deb        
+#    - name: "copying ganeti packages"
+#      synchronize:
+#        src: "/tmp/{{ build_id }}"
+#        dest: "/tmp/"
+#
+#    - name: "adding apt repository"
+#      apt_repository:
+#        repo: "deb [trusted=yes] file:/tmp/{{ build_id }} ./"
+#        state: "present"
+#        update_cache: "yes"
+#
+#    - name: "installing ganeti packages"
+#      apt:
+#        deb: "/tmp/{{ build_id }}/ganeti_{{ build_version }}_all.deb"
+#        state: "present"
+#      vars:
+#        pkgs:
+#          - ganeti
+# - name: "running QA suite"
+# burnin: /usr/local/share/ganeti/default/burnin -H kvm --disk-size=3G --mem-size=1G --maxmem-size=1G --minmem-size=1G --vcpu-count=1 -o guestfish+xenial --no-ip-check --no-name-check --no-importexport --rename=rename -t drbd -I hail -p inst0{1..3}
+
+- name: "removing test cluster VMs"
+  hosts: "cluster_nodes:build"
+  become: false
+  gather_facts: false
+  connection: "local"
+  tags: "destroy"
+  tasks:
+
+    - pause:    
+        prompt: "please confirum, that you want to remove this test cluster: {{ build_string }}"
+
+# IPs for SSH connection not known here
+#    - name: "removing shared file storage dir"
+#      file:
+#        path: "/srv/ganeti/shared-file-storage/{{ build_id }}"
+#        state: "absent"
+#      when: inventory_hostname == 'master'
+#      connection: "ssh"
+#
+#    - name: "unmounting src/build tree"
+#      command: "umount /tmp/{{ build_id }}"
+#      when: inventory_hostname != 'build'
+#      connection: "ssh"
+
+    - include_role:
+        name: "gnt-instance-remove"
+      vars:
+        instance: "{{ inventory_hostname }}.{{ build_id }}.{{ fqdn_suffix }}"

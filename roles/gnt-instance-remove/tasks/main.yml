@@ -1,0 +1,45 @@
+---
+- name: "does the instance exist?"
+  uri:
+    url: "{{ rapi_url }}/instances"
+    method: "GET"
+    user: "{{ rapi_user }}"
+    password: "{{ rapi_pass }}"
+    headers:
+      Content-Type: "application/json"
+    validate_certs: "no"
+  register: gnt_instance_list
+
+- name: "instance does exist ... removing"
+  block:
+    - name: "removeing instance"
+      uri:
+        url: "{{ rapi_url }}/instances/{{ instance }}"
+        method: "DELETE"
+        user: "{{ rapi_user }}"
+        password: "{{ rapi_pass }}"
+        headers:
+          Content-Type: "application/json"
+        validate_certs: "no"
+      register: gnt_instance_remove
+
+    - name: "waiting for instance removal"
+      uri:
+        url: "{{ rapi_url }}/jobs/{{ gnt_instance_remove.json }}"
+        method: "GET"
+        user: "{{ rapi_user }}"
+        password: "{{ rapi_pass }}"
+        headers:
+          Content-Type: "application/json"
+        validate_certs: "no"
+      register: jobstatus
+      until: jobstatus.json.status not in ['running','waiting','queued']
+      retries: 6
+      delay: 10
+
+    - name: "checking result of instance creation"
+      assert:
+        that: jobstatus.json.status == "success"
+        msg: "The job {{ gnt_instance_remove.json }} ({{ jobstatus.json.summary }}) was not successfukk or takes to long (status={{ jobstatus.json.status }} log={{ jobstatus.json.opresult }})"
+  when: instance in gnt_instance_list.json|map(attribute='id')|list
+

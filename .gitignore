@@ -1,0 +1,3 @@
+group_vars/all
+roles/debuild
+roles/qa-run

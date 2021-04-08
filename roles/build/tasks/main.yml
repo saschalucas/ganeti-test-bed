@@ -1,0 +1,114 @@
+---
+- name: "install python3 for ansible"
+  raw: "apt update && apt install -y python3-minimal"
+
+- name: "installing prerequirements"
+  apt:
+    name:
+      - "git"
+      - "rsync"
+      - "nfs-kernel-server"
+    state: "present"
+    update_cache: true
+
+- name: "checking out ganeti tree {{ _ganeti_git_url }}:{{ _ganeti_git_branch }}"
+  git:
+    repo: "{{ _ganeti_git_url }}.git"
+    version: "{{ _ganeti_git_branch }}"
+    dest: "/tmp/{{ build_id }}"
+    depth: 5
+    force: "yes"
+
+- name: "testing for Ganeti 2.x"
+  command: "grep -F 'm4_define([gnt_version_major], [2])' /tmp/{{ build_id }}/configure.ac"
+  register: ganeti_v2
+  changed_when: ganeti_v2.rc == 0
+  failed_when: false
+
+- name: "installing build dependencies for Ganeti 3.x"
+  apt:
+    name: "{{ ganeti_build_deps_general + ganeti_build_deps_python3 + ganeti_build_deps_haskell_general + ganeti_build_deps_haskell_ganeti3 }}"
+    state: "present"
+  when: ganeti_v2 is not changed
+
+- name: "installing build dependencies for Ganeti 2.x"
+  apt:
+    name: "{{ ganeti_build_deps_general + ganeti_build_deps_python2 + ganeti_build_deps_haskell_general + ganeti_build_deps_haskell_ganeti2 }}"
+    state: "present"
+  when: ganeti_v2 is changed
+
+- name: "generating configure script"
+  command:
+    chdir: "/tmp/{{ build_id }}"
+    cmd: "./autogen.sh"
+    creates: "/tmp/{{ build_id }}/Makefile"
+  register: cmd_autogen
+  notify: "save_outputs"
+
+- name: "running configure"
+  command:
+    chdir: "/tmp/{{ build_id }}"
+    cmd: "./configure --enable-symlinks --enable-haskell-coverage --enable-haskell-tests --enable-manpages-in-doc --enable-monitoring --enable-metadata --with-default-vg=ganeti --with-default-bridge=gnt-br0 --with-user-prefix=gnt- --with-group-prefix=gnt- --sysconfdir=/etc --localstatedir=/var --with-os-search-path=/srv/ganeti/os,/usr/local/lib/ganeti/os,/usr/lib/ganeti/os,/usr/share/ganeti/os --with-extstorage-search-path=/srv/ganeti/extstorage,/usr/local/lib/ganeti/extstorage,/usr/lib/ganeti/extstorage,/usr/share/ganeti/extstorage --with-iallocator-search-path=/usr/local/lib/ganeti/iallocators,/usr/lib/ganeti/iallocators"
+    creates: "/tmp/{{ build_id }}/Makefile" 
+  register: cmd_configure
+  notify: "save_outputs"
+
+- name: "collecting ansible facts (number of vCPUs for parallel build)"
+  setup:
+    gather_subset:
+      - "hardware"
+      - "network"
+
+- name: "running make"
+  command:
+    chdir: "/tmp/{{ build_id }}"
+    cmd: "make -j {{ ansible_processor_vcpus }}"
+  register: cmd_make
+  notify: "save_outputs"
+
+- block:
+    # needed by py-tests
+    - name: "ensure this host can be resolved"
+      lineinfile:
+        dest: "/etc/hosts"
+        regex: "^127.0.0.1"
+        line: "127.0.0.1 localhost {{ inventory_hostname }}"
+    
+    - name: "creating Ganeti service users"
+      command:
+        cmd: "/tmp/{{ build_id }}/tools/users-setup --yes-do-it"
+    
+    - name: "running python tests"
+      command:
+        chdir: "/tmp/{{ build_id }}"
+        cmd: "make -j {{ ansible_processor_vcpus }} py-tests"
+      register: cmd_make_py_tests
+      notify: "save_outputs"
+
+    - name: "running haskell tests/checks"
+      command:
+        chdir: "/tmp/{{ build_id }}"
+        cmd: "make -j {{ ansible_processor_vcpus }} hs-check"
+      register: cmd_make_hs_check
+      notify: "save_outputs"
+
+    - name: "creating a release tar ball"
+      command:
+        chdir: "/tmp/{{ build_id }}"
+        cmd: "./devel/release {{ _ganeti_git_branch }}"
+      environment:
+        LC_ALL: "C"
+        URL: "file:///tmp/{{ build_id }}"
+      register: cmd_devel_release
+      notify: "save_outputs"
+
+    #TODO: generate coverage report
+  when: tests is defined
+
+- meta: flush_handlers
+
+- name: "exporting build directory via NFS"
+  copy:
+    dest: "/etc/exports"
+    content: "/tmp/{{ build_id }} -ro,no_root_squash,no_subtree_check {{ ansible_default_ipv4.network }}/{{ ansible_default_ipv4.netmask }}"
+  notify: "reload nfs"

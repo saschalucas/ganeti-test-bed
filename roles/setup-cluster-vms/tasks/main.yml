@@ -1,0 +1,208 @@
+- name: "installing python3 for ansible"
+  raw: "apt update && apt install -y python3-minimal"
+
+- name: "installing prerequirements"
+  apt:
+    name:
+      - "nfs-common"
+      - "make"
+      - "automake"
+    state: "present"
+    update_cache: true
+
+- name: "configuring bash"
+  lineinfile:
+    dest: "/root/.bashrc"
+    insertafter: "EOF"
+    line: "{{ item }}"
+  with_items:
+    - ". /etc/bash_completion.d/ganeti"
+    - 'export PS1="\e[100mCluster={{ cluster_ip }} Ganeti={{ _ganeti_git_url }}:{{ _ganeti_git_branch }} OS={{ target_os }} build={{ hostvars["build"].ansible_ssh_host }} id={{ build_id}}\e[49m\n${PS1}"'
+
+- name: "mounting src/build tree"    
+  mount:
+    src: "{{ hostvars['build']['ansible_ssh_host'] }}:/tmp/{{ build_id }}"
+    path: "/tmp/{{ build_id }}"
+    fstype: "nfs"
+    opts: "ro"
+    state: "mounted"
+
+- name: "testing for Ganeti 2.x"
+  command: "grep -F 'm4_define([gnt_version_major], [2])' /tmp/{{ build_id }}/configure.ac"
+  register: ganeti_v2
+  changed_when: ganeti_v2.rc == 0
+  failed_when: false
+
+- name: "installing runtime dependencies for Ganeti 3.x"
+  apt:
+    name: "{{ ganeti_run_deps_general + ganeti_run_deps_python3 }}"
+    state: "present"
+  when: ganeti_v2 is not changed
+
+- name: "installing runtime dependencies for Ganeti 2.x"
+  apt:
+    name: "{{ ganeti_run_deps_general + ganeti_run_deps_python2 }}"
+    state: "present"
+  when: ganeti_v2 is changed
+
+- name: "installing Ganeti"
+  command:
+    chdir: "/tmp/{{ build_id }}"
+    cmd: "make install"
+    creates: "/usr/local/sbin/gnt-cluster"
+
+- name: "setting up auxilary files"
+  command:
+    cmd: "install -D -m {{ item.mode }} -o root -g root /tmp/{{ build_id }}/doc/examples/{{ item.src }} {{ item.dest }}"
+    creates: "{{ item.dest }}"
+  with_items:
+    - { src: "bash_completion",  dest: "/etc/bash_completion.d/ganeti", mode: "0644" }
+    - { src: "ganeti.cron",  dest: "/etc/cron.d/ganeti", mode: "0755" }
+    - { src: "ganeti.default",  dest: "/etc/default/ganeti", mode: "0644" }
+    - { src: "ganeti.initd",  dest: "/etc/init.d/ganeti", mode: "0755" }
+    - { src: "ganeti.logrotate",  dest: "/etc/logrotate.d/ganeti", mode: "0644" }
+
+- name: "config file for file storage pathes"
+  copy:
+    dest: "/etc/ganeti/file-storage-paths"
+    content: |
+      /srv/ganeti/file-storage
+      /srv/ganeti/shared-file-storage/{{ build_id }}
+
+- name: "enabling Ganeti serivce"
+  service:
+    name: "ganeti"
+    enabled: "yes"
+
+- name: "creating Ganeti service users"
+  command:
+    cmd: "/tmp/{{ build_id }}/tools/users-setup --yes-do-it"
+
+- name: "creating .ssh-dir"
+  file:
+    path: "/root/.ssh"
+    mode: "0700"
+    state: "directory"
+
+- name: "installing cluster ssh key pair"
+  copy:
+    src: "/tmp/{{ build_id }}/{{ item.src }}"
+    dest: "/root/.ssh/{{ item.dest | default(item.src) }}"
+    mode: "{{ item.mode | default('0644') }}"
+  with_items:
+    - { src: "id_ecdsa", mode: "0600" }
+    - { src: "id_ecdsa.pub", }
+    # authorized_keys2 -> to not interfier with ganeti
+    - { src: "id_ecdsa.pub", dest: "authorized_keys2" }
+
+- name: "collecting ansible facts"
+  setup:
+    gather_subset:
+      - "network"
+
+- name: "ensure nodes can be resolved"
+  lineinfile:
+    dest: "/etc/hosts"
+    regex: "^{{ ip }}"
+    line: "{{ ip }}\t{{ item }}.{{ build_id }}.{{ fqdn_suffix }} {{ item }}"
+  vars:
+    ip: "{{ hostvars[item]['ansible_ssh_host'] }}"
+  with_items:
+    - "{{ play_hosts }}"
+
+- name: "ensure cluster can be resolved"
+  lineinfile:
+    dest: "/etc/hosts"
+    regex: "^{{ cluster_ip }}"
+    line: "{{ cluster_ip }}\tcluster.{{ build_id }}.{{ fqdn_suffix }} cluster"
+
+- name: "creating LVM group gnt"
+  lvg:
+    vg: "ganeti"
+    pvs: "/dev/vdb"
+
+- name: "setting DRBD kernel parameters"
+  copy:
+    dest: "/etc/modprobe.d/ganeti.conf"
+    content: "options drbd minor_count=128 usermode_helper=/bin/true"
+  register: drbd_param
+
+- name: "automaticly load DRBD at boot"
+  copy:
+    dest: "/etc/modules-load.d/ganeti.conf"
+    content: "drbd"
+
+- name: "loading DRBD modul"
+  command: "modprobe drbd minor_count=128 usermode_helper=/bin/true"
+  when: drbd_param is changed
+
+- name: "mounting sharedfile NFS"    
+  mount:
+    src: "{{ nfs_sharedfile }}"
+    path: "/srv/ganeti/shared-file-storage"
+    fstype: "nfs"
+    opts: "rw"
+    state: "mounted"
+  when: nfs_sharedfile is defined
+
+- name: "mounting OSI NFS"    
+  mount:
+    src: "{{ nfs_share_osi }}"
+    path: "/srv/ganeti/os"
+    fstype: "nfs"
+    opts: "ro"
+    state: "mounted"
+  when: nfs_share_osi is defined
+
+- name: "mounting images NFS"    
+  mount:
+    src: "{{ nfs_share_images }}"
+    path: "/srv/ganeti/images"
+    fstype: "nfs"
+    opts: "ro"
+    state: "mounted"
+  when: nfs_share_images is defined
+
+- name: "installing dependencies of the guestfish OSI"
+  apt:
+    name:
+      - "jq"
+      - "libguestfs-tools"
+    state: "present"
+  when: instance_osi == 'guestfish'
+
+- name: "installing the noop OSI"
+  apt:
+    name: "ganeti-os-noop"
+    state: "present"
+
+- name: "creating file disk template path"
+  file:
+    path: "/srv/ganeti/file-storage"
+    state: "directory"
+    owner: "root"
+    group: "root"
+    mode: "0700"
+
+- name: "transforming network into bridge mode 1/2"
+  replace:
+    path: "/etc/network/interfaces"
+    regexp: "^(auto|iface) eth0"
+    replace: '\1 gnt-br0'
+  register: eni
+
+- name: "transforming network into bridge mode 2/2"
+  lineinfile:
+    path: "/etc/network/interfaces"
+    insertafter: "EOF"
+    line: "{{ item }}"
+  with_items:
+    - "        bridge_ports eth0"
+    - "        bridge_fd 0"
+    - "        bridge_stp off"
+    - "        bridge_maxwait 10"
+  register: eni
+
+- name: "rebooting to activate network changes"
+  reboot:
+  when: eni is changed

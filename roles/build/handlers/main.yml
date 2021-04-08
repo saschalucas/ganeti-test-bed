@@ -1,0 +1,25 @@
+- name: "creating artifacts directory"
+  listen: "save_outputs"
+  file:
+    path: "/tmp/{{ build_id }}"
+    state: "directory"
+  delegate_to: "localhost"
+
+- name: "copy outputs"
+  listen: "save_outputs"
+  copy:
+    content: "{{ lookup('vars', item).stdout | default('') }}"
+    dest: "/tmp/{{ build_id }}/{{ item }}.log"
+  delegate_to: "localhost"
+  with_items:
+    - "cmd_autogen"
+    - "cmd_configure"
+    - "cmd_make"
+    - "cmd_make_py_tests"
+    - "cmd_make_hs_check"
+    - "cmd_devel_release"
+
+- name: "reload nfs"
+  service:
+    name: "nfs-kernel-server"
+    state: "reloaded"

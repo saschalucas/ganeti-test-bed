@@ -1,0 +1,41 @@
+ganeti_run_deps_general:
+  - "lvm2"
+  - "openssh-client"
+  - "openssh-server"
+  - "bridge-utils"
+  - "iproute2"
+  - "iputils-arping"
+  - "libcap2-bin"
+  - "openssl"
+  - "socat"
+  - "fping"
+  - "adduser"
+  - "qemu-kvm"
+  - "drbd-utils"
+  - "man"
+  # deps not in debian control
+  # in xenial this is libcurl3
+  - "{{ libcurl4 | default('libcurl4') }}"
+  - "libatomic1"
+
+ganeti_run_deps_python3:
+  - "python3-simplejson"
+  - "python3-pyparsing"
+  - "python3-openssl"
+  - "python3-pyinotify"
+  - "python3-pycurl"
+  - "python3-paramiko"
+  - "python3-bitarray"
+  - "python3-psutil"
+
+ganeti_run_deps_python2:
+  - "python-simplejson"
+  - "python-pyparsing"
+  - "python-openssl"
+  - "python-pyinotify"
+  - "python-pycurl"
+  - "python-paramiko"
+  - "python-bitarray"
+  - "python-ipaddr"
+  - "python-fdsend"
+  - "python-psutil"
