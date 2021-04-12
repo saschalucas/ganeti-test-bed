@@ -66,18 +66,19 @@
   register: cmd_make
   notify: "save_outputs"
 
+# needed by py-tests
+- name: "ensure this host can be resolved"
+  lineinfile:
+    dest: "/etc/hosts"
+    regex: "^127.0.0.1"
+    line: "127.0.0.1 localhost {{ inventory_hostname }}"
+
+# needed by py-tests
+- name: "creating Ganeti service users"
+  command:
+    cmd: "/tmp/{{ build_id }}/tools/users-setup --yes-do-it"
+    
 - block:
-    # needed by py-tests
-    - name: "ensure this host can be resolved"
-      lineinfile:
-        dest: "/etc/hosts"
-        regex: "^127.0.0.1"
-        line: "127.0.0.1 localhost {{ inventory_hostname }}"
-    
-    - name: "creating Ganeti service users"
-      command:
-        cmd: "/tmp/{{ build_id }}/tools/users-setup --yes-do-it"
-    
     - name: "running python tests"
       command:
         chdir: "/tmp/{{ build_id }}"
