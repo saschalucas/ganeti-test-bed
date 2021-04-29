@@ -27,6 +27,8 @@ ganeti_run_deps_python3:
   - "python3-paramiko"
   - "python3-bitarray"
   - "python3-psutil"
+  # qa
+  - "python3-yaml"
 
 ganeti_run_deps_python2:
   - "python-simplejson"
@@ -39,3 +41,5 @@ ganeti_run_deps_python2:
   - "python-ipaddr"
   - "python-fdsend"
   - "python-psutil"
+  # qa
+  - "python-yaml"

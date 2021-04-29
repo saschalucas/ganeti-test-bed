@@ -21,6 +21,7 @@
   connection: "local"
   tags:
     - "setup"
+    - "qa"
     - "destroy"
   tasks:
     - name: "checking prerequirements"
@@ -62,7 +63,9 @@
   become: false
   connection: "local"
   gather_facts: false
-  tags: "setup"
+  tags:
+    - "setup"
+    - "qa"
   tasks:
     - import_role:
         name: "gnt-instance-add"
@@ -128,6 +131,8 @@
           Cluster IP={{ cluster_ip }} running Ganeti {{ _ganeti_git_url }}:{{ _ganeti_git_branch }} on {{ target_os }}
         seconds: 1  
 
+# out of order comments saving idea of local file repo
+# wrt unpublished role debuild
 # TODO: build deb        
 #    - name: "copying ganeti packages"
 #      synchronize:
@@ -147,8 +152,19 @@
 #      vars:
 #        pkgs:
 #          - ganeti
-# - name: "running QA suite"
-# burnin: /usr/local/share/ganeti/default/burnin -H kvm --disk-size=3G --mem-size=1G --maxmem-size=1G --minmem-size=1G --vcpu-count=1 -o guestfish+xenial --no-ip-check --no-name-check --no-importexport --rename=rename -t drbd -I hail -p inst0{1..3}
+
+- name: "running QA suite"
+  hosts: "master"
+  become: false
+  gather_facts: false
+  tags: "qa"
+  tasks:
+
+    - include_role:
+        name: "qa-run"
+
+  # burnin standalone
+  # burnin: /usr/local/share/ganeti/default/burnin -H kvm --disk-size=3G --mem-size=1G --maxmem-size=1G --minmem-size=1G --vcpu-count=1 -o guestfish+xenial --no-ip-check --no-name-check --no-importexport --rename=rename -t drbd -I hail -p inst0{1..3}
 
 - name: "removing test cluster VMs"
   hosts: "cluster_nodes:build"
