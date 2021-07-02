@@ -12,7 +12,6 @@ ganeti_build_deps_general:
   - "graphviz"
   # only for tests
   - "shelltestrunner"
-  - "pep8"
 
 ganeti_build_deps_python3:
   - "python3-openssl"
@@ -27,6 +26,7 @@ ganeti_build_deps_python3:
   # only for tests
   - "python3-coverage"
   - "python3-mock"
+  - "python3-pep8"
   - "pylint3"
   # only for the release script (autotools/check-imports)
   - "python3-paramiko"
@@ -45,6 +45,7 @@ ganeti_build_deps_python2:
   # only for tests
   - "python-coverage"
   - "python-mock"
+  - "python-pep8"
   - "pylint"
   # only for the release script (autotools/check-imports)
   - "python-paramiko"
