@@ -40,6 +40,6 @@
     - name: "checking result of instance creation"
       assert:
         that: jobstatus.json.status == "success"
-        msg: "The job {{ gnt_instance_remove.json }} ({{ jobstatus.json.summary }}) was not successfukk or takes to long (status={{ jobstatus.json.status }} log={{ jobstatus.json.opresult }})"
+        msg: "The job {{ gnt_instance_remove.json }} ({{ jobstatus.json.summary }}) was not successfull or takes to long (status={{ jobstatus.json.status }} log={{ jobstatus.json.opresult }})"
   when: instance in gnt_instance_list.json|map(attribute='id')|list
 
