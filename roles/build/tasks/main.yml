@@ -2,6 +2,15 @@
 - name: "install python3 for ansible"
   raw: "apt update && apt install -y python3-minimal"
 
+- raw: "dpkg-divert --divert /usr/bin/mandb.orig /usr/bin/mandb"
+- name: "pimp/break man-db"
+  copy:
+    dest: "/usr/bin/mandb"
+    content: "exit 0"
+    owner: "root"
+    group: "root"
+    mode: "0755"
+
 - name: "installing prerequirements"
   apt:
     name:
