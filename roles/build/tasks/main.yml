@@ -5,6 +5,7 @@
 - name: "installing prerequirements"
   apt:
     name:
+      - "eatmydata"
       - "git"
       - "rsync"
       - "nfs-kernel-server"
@@ -29,12 +30,16 @@
   apt:
     name: "{{ ganeti_build_deps_general + ganeti_build_deps_python3 + ganeti_build_deps_haskell_general + ganeti_build_deps_haskell_ganeti3 }}"
     state: "present"
+  environment:
+    LD_PRELOAD: /usr/lib/x86_64-linux-gnu/libeatmydata.so
   when: ganeti_v2 is not changed
 
 - name: "installing build dependencies for Ganeti 2.x"
   apt:
     name: "{{ ganeti_build_deps_general + ganeti_build_deps_python2 + ganeti_build_deps_haskell_general + ganeti_build_deps_haskell_ganeti2 }}"
     state: "present"
+  environment:
+    LD_PRELOAD: /usr/lib/x86_64-linux-gnu/libeatmydata.so
   when: ganeti_v2 is changed
 
 - name: "generating configure script"

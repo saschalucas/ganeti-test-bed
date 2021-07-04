@@ -4,6 +4,7 @@
 - name: "installing prerequirements"
   apt:
     name:
+      - "eatmydata"
       - "nfs-common"
       - "make"
       - "automake"
@@ -37,12 +38,16 @@
   apt:
     name: "{{ ganeti_run_deps_general + ganeti_run_deps_python3 }}"
     state: "present"
+  environment:
+    LD_PRELOAD: /usr/lib/x86_64-linux-gnu/libeatmydata.so
   when: ganeti_v2 is not changed
 
 - name: "installing runtime dependencies for Ganeti 2.x"
   apt:
     name: "{{ ganeti_run_deps_general + ganeti_run_deps_python2 }}"
     state: "present"
+  environment:
+    LD_PRELOAD: /usr/lib/x86_64-linux-gnu/libeatmydata.so
   when: ganeti_v2 is changed
 
 - name: "installing Ganeti"
@@ -169,12 +174,16 @@
       - "jq"
       - "libguestfs-tools"
     state: "present"
+  environment:
+    LD_PRELOAD: /usr/lib/x86_64-linux-gnu/libeatmydata.so
   when: instance_osi == 'guestfish'
 
 - name: "installing the noop OSI"
   apt:
     name: "ganeti-os-noop"
     state: "present"
+  environment:
+    LD_PRELOAD: /usr/lib/x86_64-linux-gnu/libeatmydata.so
 
 - name: "creating file disk template path"
   file:
