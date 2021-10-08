@@ -33,6 +33,6 @@ instance_tag: "ganeti-test-bed"
 #nfs_sharedfile: "192.168.1.9:/srv/ganeti/test-bed"
 
 ### NFS server and path that will host the OSI to create instances inside the test cluster
-#nfs_share_osi="192.168.1.9:/srv/ganeti/os"
-#nfs_share_images="192.168.1.9:/srv/ganeti/images"
+#nfs_share_osi: "192.168.1.9:/srv/ganeti/os"
+#nfs_share_images: "192.168.1.9:/srv/ganeti/images"
 
