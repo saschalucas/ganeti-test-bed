@@ -8,7 +8,7 @@ rapi_pass: 'secret'
 ### Instances need to be reachable via SSH after creation.
 ### example OS interface to use:
 ###     https://github.com/saschalucas/instance-guestfish
-instance_osi: "guestfish"
+instance_osi: "instance-guestfish"
 
 ### The disk template to use. All instances try to use migration-unsafe
 ### caching (`writeback`). Some disk templates silently override cache

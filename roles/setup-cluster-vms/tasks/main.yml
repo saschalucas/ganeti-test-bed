@@ -185,7 +185,7 @@
     state: "present"
   environment:
     LD_PRELOAD: /usr/lib/x86_64-linux-gnu/libeatmydata.so
-  when: instance_osi == 'guestfish'
+  when: "'guestfish' in instance_osi"
 
 - name: "installing the noop OSI"
   apt:
