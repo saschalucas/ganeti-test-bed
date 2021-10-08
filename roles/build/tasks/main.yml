@@ -28,6 +28,9 @@
     dest: "/tmp/{{ build_id }}"
     depth: 5
     force: "yes"
+  environment:
+    http_proxy: "{{ http_proxy | default(None) }}"
+    https_proxy: "{{ https_proxy | default(None) }}"
 
 - name: "testing for Ganeti 2.x"
   command: "grep -F 'm4_define([gnt_version_major], [2])' /tmp/{{ build_id }}/configure.ac"

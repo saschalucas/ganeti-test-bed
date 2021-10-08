@@ -36,3 +36,7 @@ instance_tag: "ganeti-test-bed"
 #nfs_share_osi: "192.168.1.9:/srv/ganeti/os"
 #nfs_share_images: "192.168.1.9:/srv/ganeti/images"
 
+### a proxy server for git/github access
+#http_proxy: "http://someproxy.com:1234"
+#https_proxy: "http://someproxy.com:1234"
+
