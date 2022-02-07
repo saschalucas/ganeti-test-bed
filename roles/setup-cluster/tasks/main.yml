@@ -9,7 +9,7 @@
 
 - name: "initializing Cluster"
   command:
-    cmd: "gnt-cluster init --enabled-hypervisors kvm,fake --hypervisor-parameters 'kvm:kernel_path=,user_shutdown=true,use_chroot=true,security_model=user,security_domain=nobody' --user-shutdown yes --enabled-disk-templates plain,drbd,file,sharedfile --shared-file-storage-dir /srv/ganeti/shared-file-storage/{{ build_id }} --disk-parameters drbd:resync-rate=100000,meta-barriers=True,disk-barriers=bf,c-max-rate=100000,c-min-rate=100000,dynamic-resync=False,c-plan-ahead=0,disk-custom='--c-plan-ahead 0',net-custom='--max-buffers 32000 --max-epoch-size 8000 --verify-alg crc32c' cluster.{{ build_id }}.{{ fqdn_suffix }}"
+    cmd: "gnt-cluster init --enabled-hypervisors kvm,fake --hypervisor-parameters 'kvm:kernel_path=,user_shutdown=true,use_chroot=true,security_model=user,security_domain=nobody,vnc_bind_address=127.0.0.1,keymap=de,usb_mouse=tablet,soundhw=hda,use_guest_agent=true,vhost_net=true' --user-shutdown yes --enabled-disk-templates plain,drbd,file,sharedfile --shared-file-storage-dir /srv/ganeti/shared-file-storage/{{ build_id }} --disk-parameters drbd:resync-rate=100000,meta-barriers=True,disk-barriers=bf,c-max-rate=100000,c-min-rate=100000,dynamic-resync=False,c-plan-ahead=0,disk-custom='--c-plan-ahead 0',net-custom='--max-buffers 32000 --max-epoch-size 8000 --verify-alg crc32c' cluster.{{ build_id }}.{{ fqdn_suffix }}"
     creates: "/var/lib/ganeti/config.data"
 
 - name: "adding nodes"
