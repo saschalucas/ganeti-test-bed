@@ -26,8 +26,8 @@ ganeti_build_deps_python3:
   # only for tests
   - "python3-coverage"
   - "python3-mock"
-  - "python3-pep8"
-  - "pylint3"
+  - "pycodestyle"
+  - "pylint"
   # only for the release script (autotools/check-imports)
   - "python3-paramiko"
 
