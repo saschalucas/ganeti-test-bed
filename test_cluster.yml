@@ -128,7 +128,7 @@
           your test cluster is ready
           build host IP={{ hostvars['build']['ansible_ssh_host'] }}
           build path=/tmp/{{ build_id }}
-          Cluster IP={{ cluster_ip }} running Ganeti {{ _ganeti_git_url }}:{{ _ganeti_git_branch }} on {{ target_os }}
+          Cluster IP={{ cluster_ip }} running Ganeti version(s) {{ _versions_string }} on {{ target_os }}
         seconds: 1  
 
 # out of order comments saving idea of local file repo

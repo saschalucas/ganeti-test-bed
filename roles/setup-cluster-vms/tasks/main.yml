@@ -27,7 +27,7 @@
     line: "{{ item }}"
   with_items:
     - ". /etc/bash_completion.d/ganeti"
-    - 'export PS1="\e[100mCluster={{ cluster_ip }} Ganeti={{ _ganeti_git_url }}:{{ _ganeti_git_branch }} OS={{ target_os }} build={{ hostvars["build"].ansible_ssh_host }} id={{ build_id}}\e[49m\n${PS1}"'
+    - 'export PS1="\e[100mCluster={{ cluster_ip }} Ganeti={{ _versions_string }} OS={{ target_os }} build={{ hostvars["build"].ansible_ssh_host }} id={{ build_id}}\e[49m\n${PS1}"'
 
 - name: "mounting src/build tree"    
   mount:
@@ -36,6 +36,19 @@
     fstype: "nfs"
     opts: "ro"
     state: "mounted"
+
+- name: "creating running version symlink"
+  file:
+    src: "/tmp/{{ build_id }}/{{ _versions_list_make_frindly[0] }}"
+    dest: "/tmp/running"
+    state: "link"
+
+- name: "creating upgrade version symlink"
+  file:
+    src: "/tmp/{{ build_id }}/{{ _versions_list_make_frindly[1] }}"
+    dest: "/tmp/upgrade"
+    state: "link"
+  when: _versions_list_make_frindly | count == 2
 
 - name: "testing for Ganeti 2.x"
   command: "grep -F 'm4_define([gnt_version_major], [2])' /tmp/{{ build_id }}/configure.ac"
@@ -61,13 +74,13 @@
 
 - name: "installing Ganeti"
   command:
-    chdir: "/tmp/{{ build_id }}"
+    chdir: "/tmp/{{ build_id }}/{{ _versions_list_make_frindly[0] }}"
     cmd: "make install"
     creates: "/usr/local/sbin/gnt-cluster"
 
 - name: "setting up auxilary files"
   command:
-    cmd: "install -D -m {{ item.mode }} -o root -g root /tmp/{{ build_id }}/doc/examples/{{ item.src }} {{ item.dest }}"
+    cmd: "install -D -m {{ item.mode }} -o root -g root /tmp/{{ build_id }}/{{ _versions_list_make_frindly[0] }}/doc/examples/{{ item.src }} {{ item.dest }}"
     creates: "{{ item.dest }}"
   with_items:
     - { src: "bash_completion",  dest: "/etc/bash_completion.d/ganeti", mode: "0644" }
@@ -90,7 +103,7 @@
 
 - name: "creating Ganeti service users"
   command:
-    cmd: "/tmp/{{ build_id }}/tools/users-setup --yes-do-it"
+    cmd: "/tmp/{{ build_id }}/{{ _versions_list_make_frindly[0] }}/tools/users-setup --yes-do-it"
 
 - name: "creating .ssh-dir"
   file:

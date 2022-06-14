@@ -19,7 +19,6 @@ First make a copy from `group_vars/all.example` to `group_vars/all`, then edit i
 
 ```bash
 ansible-playbook test_cluster.yml -e target_os=debian-buster -t setup
-
 ```
 
 Please note, that `debian-buster` is the variant of your OS interface specified in `group_vars/all`
@@ -28,9 +27,22 @@ Please note, that `debian-buster` is the variant of your OS interface specified 
 On a single node cluster `hail` may fail. In this case you can specify the node as an extra ansible variable `-e pnode=name`
 
 ## other git repos/branches
-In order to use other git repos and/or branches specify them as extra ansible variables on the command line: `-e ganeti_git_url=https://github.com/my_name/ganeti -e ganeti_git_branch=v3.0.1`
+In order to use other git repos and/or branches specify them as extra ansible variable on the command line:
+```bash
+# use the stable-3.0 branch from ganeti github organisation
+... -e versions=ganeti:stable-3.0
 
-# Destorying
+# use a github user's PR feature branch
+... -e versions=name:my_feature
+
+# use master branch from ganeti github organisation and additinally someones feature branch for upgrade tests
+... -e versions=+name:my_feature
+
+# use a version tag from ganeti github organisation and additinally someones feature branch for upgrade tests
+... -e versions=ganeti:v3.0.2+name:my_feature
+```
+
+# Destroying
 To remove the test cluster change the tag from `setup` to `destroy` (but keep all extra vars on the command line):
 ```bash
 ansible-playbook test_cluster.yml -e target_os=debian-buster -t destroy
@@ -60,7 +72,7 @@ make
 To install/test your changes, ssh into the cluster and run:
 
 ```bash
-gnt-cluster command "cd /tmp/<build-id> && make install"
+gnt-cluster command "cd /tmp/running && make install"
 gnt-cluster command "systemctl restart ganeti"
 ```
 

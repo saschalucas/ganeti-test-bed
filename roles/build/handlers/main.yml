@@ -1,23 +1,48 @@
 - name: "creating artifacts directory"
   listen: "save_outputs"
   file:
-    path: "/tmp/{{ build_id }}"
+    path: "/tmp/{{ build_id }}/{{ item }}"
     state: "directory"
   delegate_to: "localhost"
+  with_items: "{{ _versions_list_make_frindly }}"
 
-- name: "copy outputs"
+- name: "copy outputs build"
   listen: "save_outputs"
   copy:
-    content: "{{ lookup('vars', item).stdout | default('') }}"
-    dest: "/tmp/{{ build_id }}/{{ item }}.log"
+    content: "{{ item.result.stdout }}"
+    dest: "/tmp/{{ build_id }}/{{ item.result.item }}/{{ item.cmd }}.log"
   delegate_to: "localhost"
-  with_items:
-    - "cmd_autogen"
-    - "cmd_configure"
-    - "cmd_make"
-    - "cmd_make_py_tests"
-    - "cmd_make_hs_check"
-    - "cmd_devel_release"
+  with_items: "{% set res = [] %}{% for c in cmds %}{% for r in lookup('vars', c).get('results') %}{{ res.append({'cmd': c, 'result': r}) }}{% endfor %}{% endfor %}{{ res }}"
+  when: not item.result.stdout.startswith('skipped, since')
+  loop_control:
+    label: "{{ item.cmd }} {{ item.result.item }}"
+  vars:
+    cmds:
+      - "cmd_autogen"
+      - "cmd_configure"
+      - "cmd_make"
+      #- "cmd_make_py_tests"
+      #- "cmd_make_hs_check"
+      #- "cmd_devel_release"
+
+- name: "copy outputs tests"
+  listen: "save_outputs_test"
+  copy:
+    content: "{{ item.result.stdout }}"
+    dest: "/tmp/{{ build_id }}/{{ item.result.item }}/{{ item.cmd }}.log"
+  delegate_to: "localhost"
+  with_items: "{% set res = [] %}{% for c in cmds %}{% for r in lookup('vars', c).get('results') %}{{ res.append({'cmd': c, 'result': r}) }}{% endfor %}{% endfor %}{{ res }}"
+  when: not item.result.stdout.startswith('skipped, since')
+  loop_control:
+    label: "{{ item.cmd }} {{ item.result.item }}"
+  vars:
+    cmds:
+      #- "cmd_autogen"
+      #- "cmd_configure"
+      #- "cmd_make"
+      - "cmd_make_py_tests"
+      - "cmd_make_hs_check"
+      - "cmd_devel_release"
 
 - name: "reload nfs"
   service:

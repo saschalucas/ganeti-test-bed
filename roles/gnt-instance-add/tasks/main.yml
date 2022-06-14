@@ -48,8 +48,7 @@
             - size: "{{ 30 * 1024 }}"
           nics: "{{ nics }}"
           tags:
-            - "ganeti_git_url:{{ _ganeti_git_url }}"
-            - "ganeti_git_branch:{{ _ganeti_git_branch }}"
+            - "ganeti_versions_{{ _versions_string }}"
             - "{{ instance_tag | default(omit) }}"
           __version__: 1
           ip_check: false

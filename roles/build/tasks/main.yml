@@ -21,19 +21,36 @@
     state: "present"
     update_cache: true
 
-- name: "checking out ganeti tree {{ _ganeti_git_url }}:{{ _ganeti_git_branch }}"
+- name: "checking out ganeti tree"
   git:
-    repo: "{{ _ganeti_git_url }}.git"
-    version: "{{ _ganeti_git_branch }}"
-    dest: "/tmp/{{ build_id }}"
+    repo: "https://github.com/{{ org }}/ganeti.git"
+    version: "{{ commitish }}"
+    dest: "/tmp/{{ build_id }}/{{ item }}"
     depth: 5
     force: "yes"
+  with_items: "{{ _versions_list_make_frindly }}"
+  vars:
+    org: "{{ item.split('_colon_')[0] }}"
+    commitish: "{{ item.split('_colon_')[1] }}"
   environment:
     http_proxy: "{{ http_proxy | default(None) }}"
     https_proxy: "{{ https_proxy | default(None) }}"
 
+- name: "creating running version symlink"
+  file:
+    src: "/tmp/{{ build_id }}/{{ _versions_list_make_frindly[0] }}"
+    dest: "/tmp/running"
+    state: "link"
+
+- name: "creating upgrade version symlink"
+  file:
+    src: "/tmp/{{ build_id }}/{{ _versions_list_make_frindly[1] }}"
+    dest: "/tmp/upgrade"
+    state: "link"
+  when: _versions_list_make_frindly | count == 2
+
 - name: "testing for Ganeti 2.x"
-  command: "grep -F 'm4_define([gnt_version_major], [2])' /tmp/{{ build_id }}/configure.ac"
+  command: "grep -F 'm4_define([gnt_version_major], [2])' /tmp/{{ build_id }}/*/configure.ac"
   register: ganeti_v2
   changed_when: ganeti_v2.rc == 0
   failed_when: false
@@ -56,17 +73,19 @@
 
 - name: "generating configure script"
   command:
-    chdir: "/tmp/{{ build_id }}"
+    chdir: "/tmp/{{ build_id }}/{{ item }}"
     cmd: "./autogen.sh"
-    creates: "/tmp/{{ build_id }}/Makefile"
+    creates: "/tmp/{{ build_id }}/{{ item }}/configure"
+  with_items: "{{ _versions_list_make_frindly }}"
   register: cmd_autogen
   notify: "save_outputs"
 
 - name: "running configure"
   command:
-    chdir: "/tmp/{{ build_id }}"
+    chdir: "/tmp/{{ build_id }}/{{ item }}"
     cmd: "./configure --enable-symlinks --enable-haskell-coverage --enable-haskell-tests --enable-manpages-in-doc --enable-monitoring --enable-metadata --with-default-vg=ganeti --with-default-bridge=gnt-br0 --with-user-prefix=gnt- --with-group-prefix=gnt- --sysconfdir=/etc --localstatedir=/var --with-os-search-path=/srv/ganeti/os,/usr/local/lib/ganeti/os,/usr/lib/ganeti/os,/usr/share/ganeti/os --with-extstorage-search-path=/srv/ganeti/extstorage,/usr/local/lib/ganeti/extstorage,/usr/lib/ganeti/extstorage,/usr/share/ganeti/extstorage --with-iallocator-search-path=/usr/local/lib/ganeti/iallocators,/usr/lib/ganeti/iallocators"
-    creates: "/tmp/{{ build_id }}/Makefile" 
+    creates: "/tmp/{{ build_id }}/{{ item }}/Makefile"
+  with_items: "{{ _versions_list_make_frindly }}"
   register: cmd_configure
   notify: "save_outputs"
 
@@ -78,8 +97,9 @@
 
 - name: "running make"
   command:
-    chdir: "/tmp/{{ build_id }}"
+    chdir: "/tmp/{{ build_id }}/{{ item }}"
     cmd: "make -j {{ ansible_processor_vcpus }}"
+  with_items: "{{ _versions_list_make_frindly }}"
   register: cmd_make
   notify: "save_outputs"
 
@@ -93,7 +113,7 @@
 # needed by py-tests
 - name: "creating Ganeti service users"
   command:
-    cmd: "/tmp/{{ build_id }}/tools/users-setup --yes-do-it"
+    cmd: "/tmp/{{ build_id }}/{{ _versions_list_make_frindly[0] }}/tools/users-setup --yes-do-it"
     
 - block:
     - name: "running python tests"
@@ -101,14 +121,14 @@
         chdir: "/tmp/{{ build_id }}"
         cmd: "make -j {{ ansible_processor_vcpus }} py-tests"
       register: cmd_make_py_tests
-      notify: "save_outputs"
+      notify: "save_outputs_tests"
 
     - name: "running haskell tests/checks"
       command:
         chdir: "/tmp/{{ build_id }}"
         cmd: "make -j {{ ansible_processor_vcpus }} hs-check"
       register: cmd_make_hs_check
-      notify: "save_outputs"
+      notify: "save_outputs_tests"
 
     - name: "creating a release tar ball"
       command:
@@ -118,7 +138,7 @@
         LC_ALL: "C"
         URL: "file:///tmp/{{ build_id }}"
       register: cmd_devel_release
-      notify: "save_outputs"
+      notify: "save_outputs_tests"
 
     #TODO: generate coverage report
   when: tests is defined
