@@ -91,7 +91,7 @@ git push --set-upstream my_remote your_branch
 
 ## Spawn a test VM
 ```bash
-gnt-instance add -t plain -o guestfish+debian-bullseye --disk 0:size=5G --net 0:network=vm-net,ip=pool -B memory=1G,vcpus=1 --no-name-check --no-ip-check test.vm
+gnt-instance add -t plain -o instance-guestfish+debian-bullseye --disk 0:size=5G --net 0:network=vm-net,ip=pool -B memory=1G,vcpus=1 --no-name-check --no-ip-check test.vm
 ```
 
 ## Spawn many fake instances (i.e. for scaling tests)
