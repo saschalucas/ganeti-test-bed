@@ -37,19 +37,6 @@
     opts: "ro"
     state: "mounted"
 
-- name: "creating running version symlink"
-  file:
-    src: "/tmp/{{ build_id }}/{{ _versions_list_make_frindly[0] }}"
-    dest: "/tmp/running"
-    state: "link"
-
-- name: "creating upgrade version symlink"
-  file:
-    src: "/tmp/{{ build_id }}/{{ _versions_list_make_frindly[1] }}"
-    dest: "/tmp/upgrade"
-    state: "link"
-  when: _versions_list_make_frindly | count == 2
-
 - name: "testing for Ganeti 2.x"
   command: "grep -F 'm4_define([gnt_version_major], [2])' /tmp/{{ build_id }}/configure.ac"
   register: ganeti_v2
@@ -237,3 +224,16 @@
 - name: "rebooting to activate network changes"
   reboot:
   when: eni is changed
+
+- name: "creating running version symlink"
+  file:
+    src: "/tmp/{{ build_id }}/{{ _versions_list_make_frindly[0] }}"
+    dest: "/tmp/running"
+    state: "link"
+
+- name: "creating upgrade version symlink"
+  file:
+    src: "/tmp/{{ build_id }}/{{ _versions_list_make_frindly[1] }}"
+    dest: "/tmp/upgrade"
+    state: "link"
+  when: _versions_list_make_frindly | count == 2
