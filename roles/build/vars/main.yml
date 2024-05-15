@@ -30,6 +30,8 @@ ganeti_build_deps_python3:
   - "pylint"
   # only for the release script (autotools/check-imports)
   - "python3-paramiko"
+  # for python API doc
+  - "pydoctor"
 
 ganeti_build_deps_python2:
   - "python-openssl"
