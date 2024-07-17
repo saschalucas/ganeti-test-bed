@@ -38,9 +38,9 @@
           beparams:
             # 8G is the minimum size, where hail will work
             memory: "8G"
-            vcpus: "4"
+            vcpus: "{{ vcpus | default(4) }}"
           hvparams:
-            cpu_type: "host"
+            cpu_type: "max"
             disk_cache: "writeback"
           disk_template: "{{ disk_template }}"
           disks:
@@ -49,6 +49,7 @@
           nics: "{{ nics }}"
           tags:
             - "ganeti_versions_{{ _versions_string }}"
+            - "owner:{{ lookup('env','USER') }}"
             - "{{ instance_tag | default(omit) }}"
           __version__: 1
           ip_check: false

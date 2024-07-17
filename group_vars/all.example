@@ -28,6 +28,9 @@ instance_network: "vm-net"
 ### Any extra tag for the instances in your real cluster
 instance_tag: "ganeti-test-bed"
 
+### Number of vCPUs per virtual node. defaults to 4
+#vcpus: 8
+
 ### NFS server and path that will host sharedfile instances
 ### If you like to test with sharedfile disk template, provide a NFS Server
 #nfs_sharedfile: "192.168.1.9:/srv/ganeti/test-bed"
