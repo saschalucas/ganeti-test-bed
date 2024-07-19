@@ -1,0 +1,33 @@
+- name: enabling RAPI to listen on 0.0.0.0
+  lineinfile:
+    path: /etc/default/ganeti
+    regexp: ^RAPI_ARGS=
+    line: RAPI_ARGS="--require-authentication"
+  notify: restart ganeti
+
+- name: configuring RAPI user
+  copy:
+    dest: /var/lib/ganeti/rapi/users
+    content: ganeti-qa {cleartext}foo555 write
+  notify: restart ganeti
+
+- name: distributing RAPI config and user
+  command: gnt-cluster copyfile {{ item }}
+  with_items:
+    - /etc/default/ganeti
+    - /var/lib/ganeti/rapi/users
+
+- name: installing QA toolings
+  apt:
+    name:
+      - iptables
+
+- name: templating qa-config
+  template:
+    src: qa-config.json
+    dest: /tmp/qa-config.json
+
+- name: running qa
+  command: /tmp/{{ build_id }}/qa/ganeti-qa.py --yes-do-it /tmp/qa-config.json
+  environment:
+    PYTHONPATH: /tmp/{{ build_id }}
