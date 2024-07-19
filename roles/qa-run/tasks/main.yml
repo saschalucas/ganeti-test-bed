@@ -3,7 +3,13 @@
     path: /etc/default/ganeti
     regexp: ^RAPI_ARGS=
     line: RAPI_ARGS="--require-authentication"
-  notify: restart ganeti
+  register: rapi_listen
+
+- name: restart ganeti
+  service:
+    name: ganeti
+    state: restarted
+  when: rapi_listen is changed
 
 - name: configuring RAPI user
   copy:
@@ -22,12 +28,15 @@
     name:
       - iptables
 
+- name: prefill ssh know_hosts
+  shell: ssh-keyscan -f /var/lib/ganeti/ssconf_node_list -f /var/lib/ganeti/ssconf_node_primary_ips -f /var/lib/ganeti/ssconf_node_secondary_ips > /root/.ssh/known_hosts
+
 - name: templating qa-config
   template:
     src: qa-config.json
     dest: /tmp/qa-config.json
 
 - name: running qa
-  command: /tmp/{{ build_id }}/qa/ganeti-qa.py --yes-do-it /tmp/qa-config.json
+  command: /tmp/running/qa/ganeti-qa.py --yes-do-it /tmp/qa-config.json
   environment:
-    PYTHONPATH: /tmp/{{ build_id }}
+    PYTHONPATH: /tmp/running

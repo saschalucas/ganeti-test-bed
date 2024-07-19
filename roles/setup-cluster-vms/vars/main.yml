@@ -18,6 +18,8 @@ ganeti_run_deps_general:
   - "{{ libcurl4 | default('libcurl4') }}"
   - "libatomic1"
   - "libpcre3"
+  # qa
+  - "iptables"
 
 ganeti_run_deps_python3:
   - "python3-simplejson"
