@@ -11,7 +11,7 @@
   register: gnt_network_info
   run_once: true
 
-- name: "does the instance allready exist?"
+- name: "does the instance already exist?"
   uri:
     url: "{{ rapi_url }}/instances"
     method: "GET"

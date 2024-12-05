@@ -35,11 +35,11 @@
       loop_control:
         label: "{{ item.var }}"
 
-    - name: "adding build instance to ansible inverntory"
+    - name: "adding build instance to ansible inventory"
       add_host:
         name: "build"
-    
-    - name: "adding cluster nodes to ansible inverntory"
+
+    - name: "adding cluster nodes to ansible inventory"
       add_host:
         name: "{{ item }}"
         groups: "cluster_nodes"
@@ -72,7 +72,7 @@
       vars:
         instance: "{{ inventory_hostname }}.{{ build_id }}.{{ fqdn_suffix }}"
 
-    - name: "updateing ansible inverntory"
+    - name: "updateing ansible inventory"
       set_fact:
         ansible_ssh_host: "{{ gnt_instance_info.json['nic.ips'][0] }}"
         ansible_ssh_user: "root"
@@ -129,7 +129,7 @@
           build host IP={{ hostvars['build']['ansible_ssh_host'] }}
           build path=/tmp/{{ build_id }}
           Cluster IP={{ cluster_ip }} running Ganeti version(s) {{ _versions_string }} on {{ target_os }}
-        seconds: 1  
+        seconds: 1
 
 # out of order comments saving idea of local file repo
 # wrt unpublished role debuild
@@ -174,7 +174,7 @@
   tags: "destroy"
   tasks:
 
-    - pause:    
+    - pause:
         prompt: "please confirum, that you want to remove this test cluster: {{ build_string }}"
 
 # IPs for SSH connection not known here
