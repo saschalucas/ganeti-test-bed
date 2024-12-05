@@ -17,7 +17,7 @@ ganeti_run_deps_general:
   # in xenial this is libcurl3
   - "{{ libcurl4 | default('libcurl4') }}"
   - "libatomic1"
-  - "libpcre3"
+  #- "libpcre3"
   # qa
   - "iptables"
 
