@@ -71,6 +71,19 @@
     LD_PRELOAD: /usr/lib/x86_64-linux-gnu/libeatmydata.so
   when: ganeti_v2 is changed
 
+- name: "collecting ansible facts (number of vCPUs for parallel build)"
+  setup:
+    gather_subset:
+      - "hardware"
+      - "network"
+
+- name: "patching Makefile.am for faster cabal build"
+  lineinfile:
+    path: "/tmp/{{ build_id }}/{{ item }}/Makefile.am"
+    regexp: '\(CABAL_SETUP\) build'
+    line: "\t$(CABAL_SETUP) build -j{{ ansible_processor_vcpus }}"
+  with_items: "{{ _versions_list_make_frindly }}"
+
 - name: "generating configure script"
   command:
     chdir: "/tmp/{{ build_id }}/{{ item }}"
@@ -89,12 +102,6 @@
   with_items: "{{ _versions_list_make_frindly }}"
   register: cmd_configure
   notify: "save_outputs"
-
-- name: "collecting ansible facts (number of vCPUs for parallel build)"
-  setup:
-    gather_subset:
-      - "hardware"
-      - "network"
 
 - name: "running make"
   command:
