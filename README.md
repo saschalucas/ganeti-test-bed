@@ -91,12 +91,12 @@ git push --set-upstream my_remote your_branch
 
 ## Spawn a test VM
 ```bash
-gnt-instance add -t plain -o instance-guestfish+debian-bookworm --disk 0:size=5G --net 0:network=vm-net,ip=pool -B memory=1G,vcpus=1 --no-name-check --no-ip-check test.vm
+gnt-instance add -t plain -o instance-guestfish+debian-bookworm --disk 0:size=5G --net 0:network=vm-net,ip=pool -B memory=1G,vcpus=1 test.vm
 ```
 
 ## Spawn many fake instances (i.e. for scaling tests)
 ```bash
 gnt-cluster modify --ipolicy-vcpu-ratio 32 --ipolicy-spindle-ratio 128 --ipolicy-bounds-specs min:cpu-count=1,disk-count=1,disk-size=1,memory-size=1,nic-count=1,spindle-use=1/max:cpu-count=8,disk-count=16,disk-size=1048576,memory-size=32768,nic-count=8,spindle-use=12
 
-for i in $(seq -w 1 100); do gnt-instance add -H fake -t drbd --disk 0:size=1M -B memory=1M -o noop --opportunistic-locking --no-name-check --no-ip-check --no-wait-for-sync --submit test$i.vm; done
+for i in $(seq -w 1 100); do gnt-instance add -H fake -t drbd --disk 0:size=1M -B memory=1M -o noop --opportunistic-locking --no-wait-for-sync --submit test$i.vm; done
 ```
