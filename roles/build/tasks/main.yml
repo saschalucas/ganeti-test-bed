@@ -55,6 +55,14 @@
   changed_when: ganeti_v2.rc == 0
   failed_when: false
 
+- name: "testing for Ganeti 3.0"
+  command:
+    chdir: /tmp/running
+    cmd: "grep -F 'm4_define([gnt_version_minor], [0])' configure.ac"
+  register: ganeti_stable_30
+  changed_when: ganeti_stable_30.rc == 0
+  failed_when: false
+
 - name: "installing build dependencies for Ganeti 3.x"
   apt:
     name: "{{ ganeti_build_deps_general + ganeti_build_deps_python3 + ganeti_build_deps_haskell_general + ganeti_build_deps_haskell_ganeti3 }}"
@@ -71,6 +79,14 @@
     LD_PRELOAD: /usr/lib/x86_64-linux-gnu/libeatmydata.so
   when: ganeti_v2 is changed
 
+- name: "installing build dependencies for Ganeti 3.0"
+  apt:
+    name: "libghc-regex-pcre-dev"
+    state: "present"
+  environment:
+    LD_PRELOAD: /usr/lib/x86_64-linux-gnu/libeatmydata.so
+  when: ganeti_stable_30 is changed
+
 - name: "collecting ansible facts (number of vCPUs for parallel build)"
   setup:
     gather_subset:
@@ -83,6 +99,7 @@
     regexp: '\(CABAL_SETUP\) build'
     line: "\t$(CABAL_SETUP) build -j{{ ansible_processor_vcpus }}"
   with_items: "{{ _versions_list_make_frindly }}"
+  when: ganeti_stable_30 is not changed
 
 - name: "generating configure script"
   command:
@@ -96,8 +113,7 @@
 - name: "running configure"
   command:
     chdir: "/tmp/{{ build_id }}/{{ item }}"
-    #cmd: "./configure --enable-symlinks --enable-haskell-coverage --enable-haskell-tests --enable-manpages-in-doc --enable-monitoring --enable-metadata --with-default-vg=ganeti --with-default-bridge=gnt-br0 --with-user-prefix=gnt- --with-group-prefix=gnt- --sysconfdir=/etc --localstatedir=/var --with-os-search-path=/srv/ganeti/os,/usr/local/lib/ganeti/os,/usr/lib/ganeti/os,/usr/share/ganeti/os --with-extstorage-search-path=/srv/ganeti/extstorage,/usr/local/lib/ganeti/extstorage,/usr/lib/ganeti/extstorage,/usr/share/ganeti/extstorage --with-iallocator-search-path=/usr/local/lib/ganeti/iallocators,/usr/lib/ganeti/iallocators"
-    cmd: "./configure --enable-symlinks --enable-haskell-coverage --enable-regex-tdfa --enable-haskell-tests --enable-manpages-in-doc --enable-monitoring --enable-metadata --with-default-vg=ganeti --with-default-bridge=gnt-br0 --with-user-prefix=gnt- --with-group-prefix=gnt- --sysconfdir=/etc --localstatedir=/var --with-os-search-path=/srv/ganeti/os,/usr/local/lib/ganeti/os,/usr/lib/ganeti/os,/usr/share/ganeti/os --with-extstorage-search-path=/srv/ganeti/extstorage,/usr/local/lib/ganeti/extstorage,/usr/lib/ganeti/extstorage,/usr/share/ganeti/extstorage --with-iallocator-search-path=/usr/local/lib/ganeti/iallocators,/usr/lib/ganeti/iallocators"
+    cmd: "./configure --enable-symlinks --enable-haskell-coverage {% if ganeti_stable_30 is not changed %}--enable-regex-tdfa{% endif %} --enable-haskell-tests --enable-manpages-in-doc --enable-monitoring --enable-metadata --with-default-vg=ganeti --with-default-bridge=gnt-br0 --with-user-prefix=gnt- --with-group-prefix=gnt- --sysconfdir=/etc --localstatedir=/var --with-os-search-path=/srv/ganeti/os,/usr/local/lib/ganeti/os,/usr/lib/ganeti/os,/usr/share/ganeti/os --with-extstorage-search-path=/srv/ganeti/extstorage,/usr/local/lib/ganeti/extstorage,/usr/lib/ganeti/extstorage,/usr/share/ganeti/extstorage --with-iallocator-search-path=/usr/local/lib/ganeti/iallocators,/usr/lib/ganeti/iallocators"
     creates: "/tmp/{{ build_id }}/{{ item }}/Makefile"
   with_items: "{{ _versions_list_make_frindly }}"
   register: cmd_configure
