@@ -43,10 +43,10 @@
       add_host:
         name: "{{ item }}"
         groups: "cluster_nodes"
-      with_items:
-        - "master"
-        - "node02"
-        - "node03"
+      with_items: "{{ ['master'] + nodes }}"
+      vars:
+        _node_count: "{{ node_count|default(3) }}"
+        nodes: "{% set res=[] %}{% for n in range(2, _node_count|int + 1) %}{{ res.append('node%02d' % n|int) }}{% endfor %}{{ res }}"
 
     - name: "creating directory saving outputs"
       file:
