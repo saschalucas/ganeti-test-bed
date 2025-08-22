@@ -18,10 +18,10 @@ Test clusters are provisioned by executing an ansible playbook.
 First make a copy from `group_vars/all.example` to `group_vars/all`, then edit it to match your setup. To deploy a cluster based on current upstream git / master branch inside a Debian Buster environment simply run:
 
 ```bash
-ansible-playbook test_cluster.yml -e target_os=debian-bookworm -t setup
+ansible-playbook test_cluster.yml -e target_os=debian-trixie -t setup
 ```
 
-Please note, that `debian-bookworm` is the variant of your OS interface specified in `group_vars/all`
+Please note, that `debian-trixie` is the variant of your OS interface specified in `group_vars/all`
 
 ## single node real cluster
 On a single node cluster `hail` may fail. In this case you can specify the node as an extra ansible variable `-e pnode=name`
@@ -45,7 +45,7 @@ In order to use other git repos and/or branches specify them as extra ansible va
 # Destroying
 To remove the test cluster change the tag from `setup` to `destroy` (but keep all extra vars on the command line):
 ```bash
-ansible-playbook test_cluster.yml -e target_os=debian-bookworm -t destroy
+ansible-playbook test_cluster.yml -e target_os=debian-trixie -t destroy
 
 ```
 
@@ -91,7 +91,7 @@ git push --set-upstream my_remote your_branch
 
 ## Spawn a test VM
 ```bash
-gnt-instance add -t plain -o instance-guestfish+debian-bookworm --disk 0:size=5G --net 0:network=vm-net,ip=pool -B memory=1G,vcpus=1 test.vm
+gnt-instance add -t plain -o instance-guestfish+debian-trixie --disk 0:size=5G --net 0:network=vm-net,ip=pool -B memory=1G,vcpus=1 test.vm
 ```
 
 ## Spawn many fake instances (i.e. for scaling tests)
