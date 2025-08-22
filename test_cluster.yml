@@ -104,7 +104,7 @@
     - include_role:
         name: "build"
 
-- name: "preparing Cluster VMs to be Ganti ready"
+- name: "preparing Cluster VMs to be Ganeti ready"
   hosts: "cluster_nodes"
   become: false
   gather_facts: false
