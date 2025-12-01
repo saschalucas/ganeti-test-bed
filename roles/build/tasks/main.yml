@@ -1,25 +1,16 @@
 ---
 - name: "install python3 for ansible"
   raw: "apt update && apt install -y python3-minimal"
+  when: "'debian' in target_os or 'ubuntu' in target_os"
 
-- raw: "dpkg-divert --divert /usr/bin/mandb.orig /usr/bin/mandb"
-- name: "pimp/break man-db"
-  copy:
-    dest: "/usr/bin/mandb"
-    content: "exit 0"
-    owner: "root"
-    group: "root"
-    mode: "0755"
+- name: gathering facts
+  ansible.builtin.setup:
+    gather_subset:
+      - "distribution"
+      - "hardware"
+      - "network"
 
-- name: "installing prerequirements"
-  apt:
-    name:
-      - "eatmydata"
-      - "git"
-      - "rsync"
-      - "nfs-kernel-server"
-    state: "present"
-    update_cache: true
+- include_tasks: "prepare-{{ ansible_os_family }}.yml"
 
 - name: "checking out ganeti tree"
   git:
@@ -49,49 +40,7 @@
     state: "link"
   when: _versions_list_make_frindly | count == 2
 
-- name: "testing for Ganeti 2.x"
-  command: "grep -F 'm4_define([gnt_version_major], [2])' /tmp/{{ build_id }}/*/configure.ac"
-  register: ganeti_v2
-  changed_when: ganeti_v2.rc == 0
-  failed_when: false
-
-- name: "testing for Ganeti 3.0"
-  command:
-    chdir: /tmp/running
-    cmd: "grep -F 'm4_define([gnt_version_minor], [0])' configure.ac"
-  register: ganeti_stable_30
-  changed_when: ganeti_stable_30.rc == 0
-  failed_when: false
-
-- name: "installing build dependencies for Ganeti 3.x"
-  apt:
-    name: "{{ ganeti_build_deps_general + ganeti_build_deps_python3 + ganeti_build_deps_haskell_general + ganeti_build_deps_haskell_ganeti3 }}"
-    state: "present"
-  environment:
-    LD_PRELOAD: /usr/lib/x86_64-linux-gnu/libeatmydata.so
-  when: ganeti_v2 is not changed
-
-- name: "installing build dependencies for Ganeti 2.x"
-  apt:
-    name: "{{ ganeti_build_deps_general + ganeti_build_deps_python2 + ganeti_build_deps_haskell_general + ganeti_build_deps_haskell_ganeti2 }}"
-    state: "present"
-  environment:
-    LD_PRELOAD: /usr/lib/x86_64-linux-gnu/libeatmydata.so
-  when: ganeti_v2 is changed
-
-- name: "installing build dependencies for Ganeti 3.0"
-  apt:
-    name: "libghc-regex-pcre-dev"
-    state: "present"
-  environment:
-    LD_PRELOAD: /usr/lib/x86_64-linux-gnu/libeatmydata.so
-  when: ganeti_stable_30 is changed
-
-- name: "collecting ansible facts (number of vCPUs for parallel build)"
-  setup:
-    gather_subset:
-      - "hardware"
-      - "network"
+- include_tasks: "build-deps-{{ ansible_os_family }}.yml"
 
 - name: "patching Makefile.am for faster cabal build"
   lineinfile:
@@ -99,7 +48,8 @@
     regexp: '\(CABAL_SETUP\) build'
     line: "\t$(CABAL_SETUP) build -j{{ ansible_processor_vcpus }}"
   with_items: "{{ _versions_list_make_frindly }}"
-  when: ganeti_stable_30 is not changed
+  when:
+    - ganeti_stable_30 is not defined or ganeti_stable_30 is not changed
 
 - name: "generating configure script"
   command:

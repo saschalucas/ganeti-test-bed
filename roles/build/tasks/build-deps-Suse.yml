@@ -1,0 +1,85 @@
+- name: adding opensuse Leap ganeti repository
+  ansible.builtin.get_url:
+    url: https://download.opensuse.org/repositories/home:/ganeti/{{ ansible_distribution_version }}/home:ganeti.repo
+    dest: /etc/zypp/repos.d/home:ganeti.repo
+  environment:
+    http_proxy: "{{ http_proxy | default(None) }}"
+    https_proxy: "{{ https_proxy | default(None) }}"
+
+- name: "installing build dependencies for Ganeti 3.1"
+  community.general.zypper:
+    name:
+      - autoconf
+      - automake
+      - make
+      - socat
+      - man
+      - qemu-img
+      - graphviz
+      - graphviz-gd
+      - graphviz-gnome
+      - iproute2
+      - fakeroot
+      # Python
+      - python3-base
+      - python3-bitarray
+      - python3-pyOpenSSL
+      - python3-simplejson
+      - python3-pyparsing
+      - python3-pyasyncore
+      - python3-pyinotify
+      - python3-pycurl
+      - python3-PyYAML
+      - python3-psutil
+      - python3-docutils
+      - python3-Sphinx
+      # Python-Tests
+      - python3-coverage
+      - python3-pytest
+      # Python release skript
+      - python3-paramiko
+      - python3-bitarray
+      # optional
+      - python3-pycodestyle
+      - python3-pylint
+      # Haskell tools
+      - cabal-install
+      - hscolour
+      - pandoc
+      - hlint
+      # Haskell + modules
+      - ghc
+      - ghc-curl-devel
+      - ghc-json-devel
+      - ghc-network-devel
+      - ghc-base64-bytestring-devel
+      - ghc-utf8-string-devel
+      - ghc-zlib-devel
+      - ghc-hslogger-devel
+      - ghc-attoparsec-devel
+      - ghc-vector-devel
+      - ghc-hinotify-devel
+      - ghc-cryptonite-devel
+      - ghc-lifted-base-devel
+      - ghc-lens-devel
+      - ghc-old-time-devel
+      - ghc-temporary-devel
+      - ghc-regex-tdfa-devel
+      - ghc-snap-server-devel
+      - ghc-PSQueue-devel
+      - ghc-QuickCheck-devel
+      - ghc-test-framework-hunit-devel
+      - ghc-test-framework-quickcheck2-devel
+    state: "present"
+    update_cache: true
+    extra_args_precommand: --gpg-auto-import-keys
+  environment:
+    http_proxy: "{{ http_proxy | default(None) }}"
+    https_proxy: "{{ https_proxy | default(None) }}"
+
+- name: Symlink pytest-3
+  ansible.builtin.file:
+    src: /usr/bin/pytest-3.13
+    dest: /usr/bin/pytest-3
+    state: link
+
