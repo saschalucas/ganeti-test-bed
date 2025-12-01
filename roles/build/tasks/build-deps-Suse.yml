@@ -5,6 +5,14 @@
   environment:
     http_proxy: "{{ http_proxy | default(None) }}"
     https_proxy: "{{ https_proxy | default(None) }}"
+  register: gnt_repo
+
+- name: refresh zypper
+  command: zypper --gpg-auto-import-keys -n ref
+  environment:
+    http_proxy: "{{ http_proxy | default(None) }}"
+    https_proxy: "{{ https_proxy | default(None) }}"
+  when: gnt_repo is changed
 
 - name: "installing build dependencies for Ganeti 3.1"
   community.general.zypper:

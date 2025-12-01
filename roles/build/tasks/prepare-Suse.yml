@@ -1,3 +1,6 @@
+- name: updating ca-certs
+  command: update-ca-certificates -f
+
 - name: "installing prerequirements"
   community.general.zypper:
     name:
