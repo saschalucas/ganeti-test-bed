@@ -1,24 +1,14 @@
 - name: "installing python3 for ansible"
   raw: "apt update && apt install -y python3-minimal"
+  when: "'debian' in target_os or 'ubuntu' in target_os"
 
-- raw: "dpkg-divert --divert /usr/bin/mandb.orig /usr/bin/mandb"
-- name: "pimp/break man-db"
-  copy:
-    dest: "/usr/bin/mandb"
-    content: "exit 0"
-    owner: "root"
-    group: "root"
-    mode: "0755"
+- name: gathering facts
+  ansible.builtin.setup:
+    gather_subset:
+      - "distribution"
+      - "network"
 
-- name: "installing prerequirements"
-  apt:
-    name:
-      - "eatmydata"
-      - "nfs-common"
-      - "make"
-      - "automake"
-    state: "present"
-    update_cache: true
+- include_tasks: "prepare-{{ ansible_os_family }}.yml"
 
 - name: "configuring bash"
   lineinfile:
@@ -37,42 +27,7 @@
     opts: "ro"
     state: "mounted"
 
-- name: "testing for Ganeti 2.x"
-  command: "grep -F 'm4_define([gnt_version_major], [2])' /tmp/{{ build_id }}/configure.ac"
-  register: ganeti_v2
-  changed_when: ganeti_v2.rc == 0
-  failed_when: false
-
-- name: "testing for Ganeti 3.0"
-  command:
-    cmd: "grep -F 'm4_define([gnt_version_minor], [0])' /tmp/{{ build_id }}/{{ _versions_list_make_frindly[0] }}/configure.ac"
-  register: ganeti_stable_30
-  changed_when: ganeti_stable_30.rc == 0
-  failed_when: false
-
-- name: "installing runtime dependencies for Ganeti 3.x"
-  apt:
-    name: "{{ ganeti_run_deps_general + ganeti_run_deps_python3 }}"
-    state: "present"
-  environment:
-    LD_PRELOAD: /usr/lib/x86_64-linux-gnu/libeatmydata.so
-  when: ganeti_v2 is not changed
-
-- name: "installing runtime dependencies for Ganeti 2.x"
-  apt:
-    name: "{{ ganeti_run_deps_general + ganeti_run_deps_python2 }}"
-    state: "present"
-  environment:
-    LD_PRELOAD: /usr/lib/x86_64-linux-gnu/libeatmydata.so
-  when: ganeti_v2 is changed
-
-- name: "installing runtime dependencies for Ganeti 3.0"
-  apt:
-    name: "libpcre3"
-    state: "present"
-  environment:
-    LD_PRELOAD: /usr/lib/x86_64-linux-gnu/libeatmydata.so
-  when: ganeti_stable_30 is changed
+- include_tasks: "rdep-{{ ansible_os_family }}.yml"
 
 - name: "installing Ganeti"
   command:
@@ -98,10 +53,12 @@
       /srv/ganeti/file-storage
       /srv/ganeti/shared-file-storage/{{ build_id }}
 
+# SysV
 - name: "enabling Ganeti serivce"
   service:
     name: "ganeti"
     enabled: "yes"
+  when: ansible_os_family == 'Debian'
 
 - name: "creating Ganeti service users"
   command:
@@ -123,11 +80,6 @@
     - { src: "id_ecdsa.pub", }
     # authorized_keys2 -> to not interfier with ganeti
     - { src: "id_ecdsa.pub", dest: "authorized_keys2" }
-
-- name: "collecting ansible facts"
-  setup:
-    gather_subset:
-      - "network"
 
 - name: "ensure nodes can be resolved"
   lineinfile:
@@ -193,14 +145,21 @@
   when: nfs_share_images is defined
 
 - name: "installing dependencies of the guestfish OSI"
-  apt:
+  package:
     name:
       - "jq"
-      - "libguestfs-tools"
+      - "{{ guestfs_tools[ansible_os_family] }}"
     state: "present"
   environment:
     LD_PRELOAD: /usr/lib/x86_64-linux-gnu/libeatmydata.so
+    http_proxy: "{{ http_proxy | default(None) }}"
+    https_proxy: "{{ https_proxy | default(None) }}"
+
   when: "'guestfish' in instance_osi"
+  vars:
+    guestfs_tools:
+      Debian: libguestfs-tools
+      Suse: guestfs-tools
 
 - name: "installing the noop OSI"
   apt:
@@ -208,6 +167,7 @@
     state: "present"
   environment:
     LD_PRELOAD: /usr/lib/x86_64-linux-gnu/libeatmydata.so
+  when: ansible_os_family == 'Debian'
 
 - name: "creating file disk template path"
   file:
@@ -217,24 +177,7 @@
     group: "root"
     mode: "0700"
 
-- name: "transforming network into bridge mode 1/2"
-  replace:
-    path: "/etc/network/interfaces"
-    regexp: "^(auto|iface) eth0"
-    replace: '\1 gnt-br0'
-  register: eni
-
-- name: "transforming network into bridge mode 2/2"
-  lineinfile:
-    path: "/etc/network/interfaces"
-    insertafter: "EOF"
-    line: "{{ item }}"
-  with_items:
-    - "        bridge_ports eth0"
-    - "        bridge_fd 0"
-    - "        bridge_stp off"
-    - "        bridge_maxwait 10"
-  register: eni
+- include_tasks: "bridge-{{ ansible_os_family }}.yml"
 
 - name: "rebooting to activate network changes"
   reboot:

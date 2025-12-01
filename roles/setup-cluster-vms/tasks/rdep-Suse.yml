@@ -1,0 +1,34 @@
+- name: installing Ganeti 3.1 runtime dependencies
+  zypper:
+    name:
+      - lvm2
+      - drbd
+      - openssh-clients
+      - openssh-server
+      - bridge-utils
+      - iproute2
+      - libcap-progs
+      - openssl
+      - socat
+      - fping
+      - qemu
+      - drbd-utils
+      - man
+      - libcurl4
+      - hostname
+      # start-stop-daemon
+      - dpkg
+      # Python
+      - python3-base
+      - python3-bitarray
+      - python3-simplejson
+      - python3-pyparsing
+      - python3-pyasyncore
+      - python3-pyOpenSSL
+      - python3-pyinotify
+      - python3-pycurl
+      - python3-psutil
+  environment:
+    http_proxy: "{{ http_proxy | default(None) }}"
+    https_proxy: "{{ https_proxy | default(None) }}"
+

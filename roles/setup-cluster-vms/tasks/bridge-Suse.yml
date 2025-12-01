@@ -1,0 +1,20 @@
+- name: removing IP from /etc/sysconfig/network/ifcfg-eth0
+  lineinfile:
+    path: /etc/sysconfig/network/ifcfg-eth0
+    regexp: ^IPADDR=
+    state: absent
+  register: eni
+
+- name: creating bridge config
+  copy:
+   dest: /etc/sysconfig/network/ifcfg-gnt-br0
+   content: |
+     BOOTPROTO='static'
+     BRIDGE='yes'
+     BRIDGE_FORWARDDELAY='0'
+     BRIDGE_PORTS='eth0'
+     BRIDGE_STP='off'
+     STARTMODE='auto'
+     USERCONTROL='no'
+     IPADDR={{ ansible_default_ipv4.address }}/{{ ansible_default_ipv4.prefix }}
+  register: eni

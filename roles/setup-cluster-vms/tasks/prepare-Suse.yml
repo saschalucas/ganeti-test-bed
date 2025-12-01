@@ -1,0 +1,20 @@
+- name: stopping firewalld
+  ansible.builtin.service:
+    name: firewalld
+    enabled: false
+    state: stopped
+
+- name: "installing prerequirements"
+  zypper:
+    name:
+      - "nfs-client"
+      - "make"
+      - "automake"
+    state: "present"
+    update_cache: true
+  environment:
+    http_proxy: "{{ http_proxy | default(None) }}"
+    https_proxy: "{{ https_proxy | default(None) }}"
+ 
+- name: erstelle /root/.bashrc
+  command: touch /root/.bashrc

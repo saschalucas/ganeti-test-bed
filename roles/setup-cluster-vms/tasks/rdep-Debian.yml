@@ -1,0 +1,37 @@
+- name: "testing for Ganeti 2.x"
+  command: "grep -F 'm4_define([gnt_version_major], [2])' /tmp/{{ build_id }}/configure.ac"
+  register: ganeti_v2
+  changed_when: ganeti_v2.rc == 0
+  failed_when: false
+
+- name: "testing for Ganeti 3.0"
+  command:
+    cmd: "grep -F 'm4_define([gnt_version_minor], [0])' /tmp/{{ build_id }}/{{ _versions_list_make_frindly[0] }}/configure.ac"
+  register: ganeti_stable_30
+  changed_when: ganeti_stable_30.rc == 0
+  failed_when: false
+
+- name: "installing runtime dependencies for Ganeti 3.x"
+  apt:
+    name: "{{ ganeti_run_deps_general + ganeti_run_deps_python3 }}"
+    state: "present"
+  environment:
+    LD_PRELOAD: /usr/lib/x86_64-linux-gnu/libeatmydata.so
+  when: ganeti_v2 is not changed
+
+- name: "installing runtime dependencies for Ganeti 2.x"
+  apt:
+    name: "{{ ganeti_run_deps_general + ganeti_run_deps_python2 }}"
+    state: "present"
+  environment:
+    LD_PRELOAD: /usr/lib/x86_64-linux-gnu/libeatmydata.so
+  when: ganeti_v2 is changed
+
+- name: "installing runtime dependencies for Ganeti 3.0"
+  apt:
+    name: "libpcre3"
+    state: "present"
+  environment:
+    LD_PRELOAD: /usr/lib/x86_64-linux-gnu/libeatmydata.so
+  when: ganeti_stable_30 is changed
+

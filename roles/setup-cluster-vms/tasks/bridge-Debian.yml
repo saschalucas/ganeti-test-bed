@@ -1,0 +1,19 @@
+- name: "transforming network into bridge mode 1/2"
+  replace:
+    path: "/etc/network/interfaces"
+    regexp: "^(auto|iface) eth0"
+    replace: '\1 gnt-br0'
+  register: eni
+
+- name: "transforming network into bridge mode 2/2"
+  lineinfile:
+    path: "/etc/network/interfaces"
+    insertafter: "EOF"
+    line: "{{ item }}"
+  with_items:
+    - "        bridge_ports eth0"
+    - "        bridge_fd 0"
+    - "        bridge_stp off"
+    - "        bridge_maxwait 10"
+  register: eni
+
