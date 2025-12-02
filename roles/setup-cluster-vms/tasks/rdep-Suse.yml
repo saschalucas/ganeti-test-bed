@@ -3,6 +3,8 @@
     name:
       - lvm2
       - drbd
+      - drbd-kmp-default
+      - drbd-utils
       - openssh-clients
       - openssh-server
       - bridge-utils
@@ -12,7 +14,6 @@
       - socat
       - fping
       - qemu
-      - drbd-utils
       - man
       - libcurl4
       - hostname

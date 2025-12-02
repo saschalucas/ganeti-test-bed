@@ -63,11 +63,15 @@
 - name: "running configure"
   command:
     chdir: "/tmp/{{ build_id }}/{{ item }}"
-    cmd: "./configure --enable-symlinks --enable-haskell-coverage --enable-haskell-tests --enable-manpages-in-doc --enable-monitoring --enable-metadata --with-default-vg=ganeti --with-default-bridge=gnt-br0 --with-user-prefix=gnt- --with-group-prefix=gnt- --sysconfdir=/etc --localstatedir=/var --with-os-search-path=/srv/ganeti/os,/usr/local/lib/ganeti/os,/usr/lib/ganeti/os,/usr/share/ganeti/os --with-extstorage-search-path=/srv/ganeti/extstorage,/usr/local/lib/ganeti/extstorage,/usr/lib/ganeti/extstorage,/usr/share/ganeti/extstorage --with-iallocator-search-path=/usr/local/lib/ganeti/iallocators,/usr/lib/ganeti/iallocators"
+    cmd: "./configure --enable-symlinks --enable-haskell-coverage --enable-haskell-tests --enable-manpages-in-doc --enable-monitoring --enable-metadata --with-default-vg=ganeti --with-default-bridge=gnt-br0 --with-user-prefix=gnt- --with-group-prefix=gnt- --sysconfdir=/etc --localstatedir=/var --with-os-search-path=/srv/ganeti/os,/usr/local/lib/ganeti/os,/usr/lib/ganeti/os,/usr/share/ganeti/os --with-extstorage-search-path=/srv/ganeti/extstorage,/usr/local/lib/ganeti/extstorage,/usr/lib/ganeti/extstorage,/usr/share/ganeti/extstorage --with-iallocator-search-path=/usr/local/lib/ganeti/iallocators,/usr/lib/ganeti/iallocators --with-sshd-restart-command='/usr/sbin/service {{ ssh[ansible_os_family] }} restart'"
     creates: "/tmp/{{ build_id }}/{{ item }}/Makefile"
   with_items: "{{ _versions_list_make_frindly }}"
   register: cmd_configure
   notify: "save_outputs"
+  vars:
+    ssh:
+      Debian: ssh
+      Suse: sshd
 
 - name: "running make"
   command:

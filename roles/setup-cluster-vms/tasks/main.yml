@@ -73,13 +73,17 @@
 - name: "installing cluster ssh key pair"
   copy:
     src: "/tmp/{{ build_id }}/{{ item.src }}"
-    dest: "/root/.ssh/{{ item.dest | default(item.src) }}"
+    dest: "/root/.ssh/{{ item.src }}"
     mode: "{{ item.mode | default('0644') }}"
   with_items:
     - { src: "id_ecdsa", mode: "0600" }
     - { src: "id_ecdsa.pub", }
-    # authorized_keys2 -> to not interfier with ganeti
-    - { src: "id_ecdsa.pub", dest: "authorized_keys2" }
+
+- name: "appending ssh key to authorized_keys"
+  ansible.posix.authorized_key:
+    user: root
+    key: "{{ lookup('file', '/tmp/' + build_id + '/id_ecdsa.pub') }}"
+    comment: ganeti-test-bed
 
 - name: "ensure nodes can be resolved"
   lineinfile:
@@ -122,7 +126,7 @@
     src: "{{ nfs_sharedfile }}"
     path: "/srv/ganeti/shared-file-storage"
     fstype: "nfs"
-    opts: "rw"
+    opts: "rw,vers=3"
     state: "mounted"
   when: nfs_sharedfile is defined
 
