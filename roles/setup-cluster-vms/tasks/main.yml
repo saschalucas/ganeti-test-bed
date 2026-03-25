@@ -43,7 +43,6 @@
     - { src: "bash_completion",  dest: "/etc/bash_completion.d/ganeti", mode: "0644" }
     - { src: "ganeti.cron",  dest: "/etc/cron.d/ganeti", mode: "0755" }
     - { src: "ganeti.default",  dest: "/etc/default/ganeti", mode: "0644" }
-    - { src: "ganeti.initd",  dest: "/etc/init.d/ganeti", mode: "0755" }
     - { src: "ganeti.logrotate",  dest: "/etc/logrotate.d/ganeti", mode: "0644" }
 
 - name: "config file for file storage pathes"
@@ -53,12 +52,55 @@
       /srv/ganeti/file-storage
       /srv/ganeti/shared-file-storage/{{ build_id }}
 
-# SysV
-- name: "enabling Ganeti serivce"
-  service:
-    name: "ganeti"
-    enabled: "yes"
-  when: ansible_os_family == 'Debian'
+# ansible distribution facts and /etc/os-release does not contain a major version number for Debian unstable :-(
+- name: "get Debian version number"
+  command: dpkg-query -W -f '${Version}\n' base-files
+  register: my_deb_maj_ver
+  when: ansible_distribution == 'Debian'
+
+- block:
+    - name: "setting up service files"
+      command:
+        cmd: "install -D -m 0755 -o root -g root /tmp/{{ build_id }}/{{ _versions_list_make_frindly[0] }}/doc/examples/ganeti.initd /etc/init.d/ganeti"
+        creates: "/etc/init.d/ganeti"
+
+    - name: "enabling Ganeti SysV serivce"
+      service:
+        name: "ganeti"
+        enabled: "yes"
+
+  when: ansible_distribution == 'Debian' and my_deb_maj_ver and my_deb_maj_ver.stdout|int < 14 or
+        ansible_distribution == 'Ubuntu' and ansible_distribution_major_version|int < 26 or
+        ansible_os_family == 'Suse' and ansible_distribution_major_version|int < 16
+
+- block:
+    - name: "setting up service files"
+      command:
+        cmd: "install -D -m 0644 -o root -g root /tmp/{{ build_id }}/{{ _versions_list_make_frindly[0] }}/doc/examples/systemd/{{ item }} /usr/lib/systemd/system/{{ item }}"
+        creates: "/usr/lib/systemd/system/{{ item }}"
+      with_items:
+        - ganeti-common.service
+        - ganeti-confd.service
+        - ganeti-kvmd.service
+        - ganeti-luxid.service
+        - ganeti-master.target
+        - ganeti-metad.service
+        - ganeti-mond.service
+        - ganeti-noded.service
+        - ganeti-node.target
+        - ganeti-rapi.service
+        - ganeti.service
+        - ganeti.target
+        - ganeti-wconfd.service
+
+    - name: "enabling Ganeti systemd serivce"
+      service:
+        name: "ganeti.target"
+        enabled: "yes"
+
+  when: ansible_distribution == 'Debian' and my_deb_maj_ver and my_deb_maj_ver.stdout|int >= 14 or
+        ansible_distribution == 'Ubuntu' and ansible_distribution_major_version|int >= 26 or
+        ansible_os_family == 'Suse' and ansible_distribution_major_version|int >= 16
 
 - name: "creating Ganeti service users"
   command:
