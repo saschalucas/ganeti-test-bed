@@ -46,3 +46,13 @@ instance_tag: "ganeti-test-bed"
 #http_proxy: "http://someproxy.com:1234"
 #https_proxy: "http://someproxy.com:1234"
 
+### Cehp/RBD
+#rbd_pool: mypool
+#rbd_user: qemu
+#rbd_namespace: clusterX
+#ceph_conf:
+#  fsid: 21635bbf-383b-4949-9d46-62c252daa06c
+#  mons:
+#    - 1.2.3.4
+#    - 5.6.7.8
+#ceph_key: ZnNhZMO2bGtnZnNhIGpnYSBndCBhcyBmYXNwCg==

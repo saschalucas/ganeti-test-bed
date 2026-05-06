@@ -1,0 +1,4 @@
+[client.{{ rbd_user | default('admin') }}]
+	key = {{ ceph_key }}
+	caps mon = "profile rbd"
+	caps osd = "profile rbd pool={{ pool }}"

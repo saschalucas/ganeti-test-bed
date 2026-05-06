@@ -13,8 +13,8 @@
     creates: "/var/lib/ganeti/config.data"
   vars:
     disk_templates:
-      Debian: plain,drbd,file,sharedfile
-      Suse: plain,file,sharedfile
+      Debian: plain,drbd,file,sharedfile,rbd
+      Suse: plain,file,sharedfile,rbd
     kvm:
       Debian: /usr/bin/kvm
       Suse: /usr/bin/qemu-kvm

@@ -223,6 +223,26 @@
     group: "root"
     mode: "0700"
 
+- name: ceph block
+  when: ceph_conf is defined
+  block:
+
+    - name: installing ceph clients
+      package:
+        name: ceph-common
+
+    - name: generating ceph.conf
+      template:
+        src: ceph.conf
+        dest: /etc/ceph/ceph.conf
+
+    - name: generating client keyring
+      template:
+        src: client.keyring
+        dest: /etc/ceph/ceph.client.{{ rbd_user | default('admin') }}.keyring
+      vars:
+        pool: "{{ rbd_pool | default('rbd') }}"
+
 - include_tasks: "bridge-{{ ansible_os_family }}.yml"
 
 - name: "rebooting to activate network changes"
