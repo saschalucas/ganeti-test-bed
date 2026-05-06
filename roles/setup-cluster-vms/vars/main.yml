@@ -10,7 +10,7 @@ ganeti_run_deps_general:
   - "socat"
   - "fping"
   - "adduser"
-  - "qemu-kvm"
+  - "qemu-system-x86"
   - "drbd-utils"
   - "man"
   # deps not in debian control
