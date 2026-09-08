@@ -1,16 +1,14 @@
-- name: "testing for Ganeti 2.x"
-  command: "grep -F 'm4_define([gnt_version_major], [2])' /tmp/{{ build_id }}/*/configure.ac"
-  register: ganeti_v2
-  changed_when: ganeti_v2.rc == 0
-  failed_when: false
-
-- name: "testing for Ganeti 3.0"
-  command:
+- name: parsing Ganeti version
+  shell:
     chdir: /tmp/running
-    cmd: "grep -F 'm4_define([gnt_version_minor], [0])' configure.ac"
-  register: ganeti_stable_30
-  changed_when: ganeti_stable_30.rc == 0
-  failed_when: false
+    cmd: awk -F ',' '$1 ~ /\[gnt_version_(major|minor)\]/ {print $2}' configure.ac | tr -d ' [])'
+  register: gnt_version
+
+- name: setting fact for Ganeti major/minor version
+  set_fact:
+    gnt_maj_v: "{{ gnt_version.stdout_lines[0] }}"
+    gnt_min_v: "{{ gnt_version.stdout_lines[1] }}"
+    gnt_ver: "{{ gnt_version.stdout_lines[0] }}.{{ gnt_version.stdout_lines[1] }}"
 
 - name: "installing build dependencies for Ganeti 3.x"
   apt:
@@ -18,7 +16,7 @@
     state: "present"
   environment:
     LD_PRELOAD: /usr/lib/x86_64-linux-gnu/libeatmydata.so
-  when: ganeti_v2 is not changed
+  when: gnt_ver is version('3.1', '>=')
 
 - name: "installing build dependencies for Ganeti 2.x"
   apt:
@@ -26,7 +24,7 @@
     state: "present"
   environment:
     LD_PRELOAD: /usr/lib/x86_64-linux-gnu/libeatmydata.so
-  when: ganeti_v2 is changed
+  when: gnt_ver is version('3.0', '<')
 
 - name: "installing build dependencies for Ganeti 3.0"
   apt:
@@ -34,4 +32,4 @@
     state: "present"
   environment:
     LD_PRELOAD: /usr/lib/x86_64-linux-gnu/libeatmydata.so
-  when: ganeti_stable_30 is changed
+  when: gnt_ver is version('3.0', '==')

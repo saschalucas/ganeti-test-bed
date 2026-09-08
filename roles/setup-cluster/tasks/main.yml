@@ -19,6 +19,21 @@
       Debian: /usr/bin/kvm
       Suse: /usr/bin/qemu-kvm
 
+- name: configuring RBD pool
+  command:
+    cmd: gnt-cluster modify --disk-parameters rbd:pool={{ rbd_pool }}
+  when: rbd_pool is defined
+
+- name: configuring RBD user
+  command:
+    cmd: gnt-cluster modify --disk-parameters rbd:user-id={{ rbd_user }}
+  when: rbd_user is defined
+
+- name: configuring RBD namespace
+  command:
+    cmd: gnt-cluster modify --disk-parameters rbd:namespace={{ rbd_namespace }}
+  when: rbd_namespace is defined
+
 - name: "adding nodes"
   shell:
     cmd: "gnt-node add --no-ssh-key-check {{ item }}.{{ build_id }}.{{ fqdn_suffix }} && touch /var/tmp/node-add-{{ item }}.success"
