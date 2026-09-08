@@ -1,0 +1,25 @@
+- name: updating ca-certs
+  command: update-ca-certificates -f
+
+- name: "installing prerequirements"
+  community.general.zypper:
+    name:
+      - "git"
+      - "rsync"
+      - "nfs-kernel-server"
+    state: "present"
+  environment:
+    http_proxy: "{{ http_proxy | default(None) }}"
+    https_proxy: "{{ https_proxy | default(None) }}"
+
+- name: starting NFS server
+  ansible.builtin.service:
+    name: nfs-server
+    enabled: true
+    state: started
+
+- name: stopping firewalld
+  ansible.builtin.service:
+    name: firewalld
+    enabled: false
+    state: stopped
