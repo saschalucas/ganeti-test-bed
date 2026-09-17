@@ -73,6 +73,7 @@
       "4":
         - --with-ovmf-code-template=/usr/share/OVMF/OVMF_CODE_4M.fd
         - --with-ovmf-vars-template=/usr/share/OVMF/OVMF_VARS_4M.fd
+      "3": []
       default:
         - --enable-symlinks
         - --enable-haskell-coverage
